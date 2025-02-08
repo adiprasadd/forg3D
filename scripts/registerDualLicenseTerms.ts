@@ -20,48 +20,105 @@ const config: StoryConfig = {
 const client = StoryClient.newClient(config);
 
 // WIP token address on Story Protocol
-const WIP_TOKEN = '0x1514000000000000000000000000000000000000';
+const WIP_TOKEN = '0x1514000000000000000000000000000000000000' as Address;
 
-async function registerDualLicenseTerms() {
+interface DualLicenseTermsParams {
+  ipId: string;
+  currency?: Address;
+  upfrontFee?: bigint;
+  revenueFee?: bigint;
+  revenueShare?: number;
+}
+
+async function registerDualLicenseTerms(params: DualLicenseTermsParams) {
   try {
     console.log('Registering dual license terms...');
+    const currency = params.currency || WIP_TOKEN;
+    const upfrontFee = params.upfrontFee; // 10 WIP tokens
+    const revenueFee = params.revenueFee; // 5 WIP tokens
+    const revenueShare = params.revenueShare; // 30%
 
     // Register upfront-only commercial use license
     console.log('\nRegistering upfront-only commercial use license...');
     const upfrontResponse = await client.license.registerCommercialUsePIL({
-      currency: WIP_TOKEN,
-      defaultMintingFee: BigInt('10000000000000000000'), // 10 WIP tokens
+      currency,
+      defaultMintingFee: upfrontFee || '10',
       txOptions: { waitForTransaction: true }
     });
 
-    console.log('Upfront-only license terms registered:');
-    console.log('License Terms ID:', upfrontResponse.licenseTermsId);
-    console.log('Transaction Hash:', upfrontResponse.txHash);
+    console.log('Upfront license registered:', upfrontResponse);
 
     // Register revenue-share commercial remix license
     console.log('\nRegistering revenue-share commercial remix license...');
     const revenueShareResponse = await client.license.registerCommercialRemixPIL({
-      currency: WIP_TOKEN,
-      defaultMintingFee: BigInt('5000000000000000000'), // 5 WIP tokens
-      commercialRevShare: 30, // 30% revenue share
+      currency,
+      defaultMintingFee: revenueFee || '5',
+      commercialRevShare: revenueShare || 30,
       txOptions: { waitForTransaction: true }
     });
 
-    console.log('Revenue-share license terms registered:');
-    console.log('License Terms ID:', revenueShareResponse.licenseTermsId);
-    console.log('Transaction Hash:', revenueShareResponse.txHash);
+    console.log('Revenue share license registered:', revenueShareResponse);
+
+    // Attach both licenses to the IP asset
+    console.log('\nAttaching licenses to IP asset...');
+    
+    if (!upfrontResponse.licenseTermsId || !revenueShareResponse.licenseTermsId) {
+      throw new Error('License terms IDs not returned from registration');
+    }
+
+    await client.license.attachLicenseTerms({
+      ipId: params.ipId as Address,
+      licenseTermsId: upfrontResponse.licenseTermsId as bigint,
+      txOptions: { waitForTransaction: true }
+    });
+
+    await client.license.attachLicenseTerms({
+      ipId: params.ipId as Address,
+      licenseTermsId: revenueShareResponse.licenseTermsId as bigint,
+      txOptions: { waitForTransaction: true }
+    });
+
+    console.log('\nLicense terms attached successfully!');
+    console.log('Upfront License Terms ID:', upfrontResponse.licenseTermsId.toString());
+    console.log('Revenue Share License Terms ID:', revenueShareResponse.licenseTermsId.toString());
 
     return {
-      upfrontLicenseId: upfrontResponse.licenseTermsId,
-      revenueShareLicenseId: revenueShareResponse.licenseTermsId
+      upfrontTermsId: upfrontResponse.licenseTermsId,
+      revenueTermsId: revenueShareResponse.licenseTermsId
     };
   } catch (error) {
-    console.error('Error registering license terms:', error);
+    console.error('Error registering dual license terms:', error);
     throw error;
   }
 }
 
+// Parse command line arguments
+function parseArgs() {
+  const args = process.argv.slice(2);
+  const usage = `
+Usage: npx ts-node scripts/registerDualLicenseTerms.ts <ipId>
+
+Arguments:
+  ipId    The ID of the IP asset to attach licenses to
+
+Example:
+  npx ts-node scripts/registerDualLicenseTerms.ts 0x1234...5678
+`;
+
+  if (args.length !== 1 || args.includes('--help')) {
+    console.log(usage);
+    process.exit(1);
+  }
+
+  return {
+    ipId: args[0]
+  };
+}
+
 // Run if called directly
 if (require.main === module) {
-  registerDualLicenseTerms().catch(console.error);
+  const { ipId } = parseArgs();
+  registerDualLicenseTerms({ ipId }).catch(console.error);
 }
+
+export { registerDualLicenseTerms };
