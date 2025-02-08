@@ -12,32 +12,57 @@ export default function Navigation() {
   return (
     <nav className="py-4 px-6 border-b border-gray-700 overflow-x-auto"> {/* Added overflow-x-auto */}
       <div className="flex items-center justify-between">
-        <Link href="/" className="text-2xl font-bold text-blue-400" aria-label="Home">
+        <Link
+          href="/"
+          className="text-2xl font-bold text-blue-400"
+          aria-label="Home"
+        >
           StoryForge
         </Link>
-        <div className="space-x-6">
-          <Link href="/models" className="hover:text-blue-400 transition" aria-label="Models">Models</Link>
-          <Link href="/materials" className="hover:text-blue-400 transition" aria-label="Materials">Materials</Link>
-          <Link href="/scenes" className="hover:text-blue-400 transition" aria-label="Scenes">Scenes</Link>
-          <Link href="/creators" className="hover:text-blue-400 transition" aria-label="Creators">Creators</Link>
+        <div className="flex items-center space-x-6">
+          <Link href="/models" className="hover:text-blue-400 transition">
+            Models
+          </Link>
+          <Link href="/materials" className="hover:text-blue-400 transition">
+            Materials
+          </Link>
+          <Link href="/scenes" className="hover:text-blue-400 transition">
+            Scenes
+          </Link>
+          <Link href="/creators" className="hover:text-blue-400 transition">
+            Creators
+          </Link>
+          <UploadButton
+            onUploadComplete={(result) => {
+              console.log("Upload complete:", result);
+              // Redirect to create page with the uploaded file info
+              window.location.href = `/create?fileUrl=${encodeURIComponent(
+                result.url
+              )}&fileId=${result.publicId}`;
+            }}
+            label="Upload Model"
+          />
           <SignedOut>
-            <SignInButton />
+            <SignInButton mode="modal">
+              <button className="hover:text-blue-400 transition">
+                Sign In
+              </button>
+            </SignInButton>
           </SignedOut>
           <SignedIn>
-            <UserButton />
+            <UserButton afterSignOutUrl="/" />
           </SignedIn>
         </div>
       </div>
       {error && (
-        <div className="mt-2 text-red-400 text-sm text-center">
-          {error} Please try again or contact support.
-        </div>
+        <div className="mt-2 text-red-400 text-sm text-center">{error}</div>
       )}
     </nav>
   );
 }
 
-{/* <div className="space-x-6">
+{
+  /* <div className="space-x-6">
   <Link href="/marketplace" className="hover:text-blue-400 transition">
     Marketplace
   </Link>
@@ -62,5 +87,5 @@ export default function Navigation() {
       ? "Connected"
       : "Connect Wallet"}
   </button>
-</div> */}
-      
+</div> */
+}
