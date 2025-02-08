@@ -1,53 +1,51 @@
-import { NextResponse } from "next/server";
-import { supabase } from "@/app/lib/supabase/config";
+import { NextResponse } from 'next/server';
+import { writeFile, mkdir } from 'fs/promises';
+import path from 'path';
 
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
-    const file = formData.get("file") as File;
-    const fileName = formData.get("fileName") as string;
-    const partNumber = parseInt(formData.get("partNumber") as string);
-    const totalChunks = parseInt(formData.get("totalChunks") as string);
+    
+    const model = formData.get('model') as File;
+    const cover = formData.get('cover') as File;
+    const metadataStr = formData.get('metadata') as string;
+    const baseFileName = formData.get('baseFileName') as string;
 
-    if (!file || !fileName) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 });
-    }
+    // Create base upload directory
+    const uploadDir = path.join(process.cwd(), 'public', 'uploads');
+    
+    // Create a specific directory for this upload using baseFileName
+    const modelDir = path.join(uploadDir, baseFileName);
+    await mkdir(modelDir, { recursive: true });
 
-    // Convert file to buffer
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const chunkName = `${Date.now()}-${fileName}.part${partNumber}`;
+    // Save model file
+    const modelExt = path.extname(model.name);
+    const modelFileName = `model${modelExt}`;
+    const modelPath = path.join(modelDir, modelFileName);
+    const modelBuffer = Buffer.from(await model.arrayBuffer());
+    await writeFile(modelPath, modelBuffer);
 
-    // Upload chunk to Supabase
-    const { data, error } = await supabase.storage
-      .from("3d_files")
-      .upload(chunkName, buffer, {
-        contentType: file.type,
-        upsert: false,
-      });
+    // Save cover image
+    const coverExt = path.extname(cover.name);
+    const coverFileName = `cover${coverExt}`;
+    const coverPath = path.join(modelDir, coverFileName);
+    const coverBuffer = Buffer.from(await cover.arrayBuffer());
+    await writeFile(coverPath, coverBuffer);
 
-    if (error) {
-      console.error("Supabase upload error:", error);
-      return NextResponse.json(
-        { error: error.message },
-        { status: error.statusCode || 500 }
-      );
-    }
+    // Save metadata
+    const metadataPath = path.join(modelDir, 'metadata.json');
+    await writeFile(metadataPath, metadataStr);
 
     return NextResponse.json({
-      chunkId: data.path,
-      partNumber,
+      success: true,
+      fileName: baseFileName,
+      files: {
+        model: `/uploads/${baseFileName}/${modelFileName}`,
+        cover: `/uploads/${baseFileName}/${coverFileName}`,
+        metadata: `/uploads/${baseFileName}/metadata.json`
+      }
     });
   } catch (error) {
-    console.error("Error handling chunk upload:", error);
-    return NextResponse.json(
-      { error: "Failed to process chunk upload" },
-      { status: 500 }
-    );
+    console.error("Upload error:", error);
   }
 }
-
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
