@@ -39,33 +39,49 @@ export default function GallerySection() {
         images[(currentIndex + 3) % images.length],
     ];
 
+
+    const titles = [
+        "Modern Interior",
+        "Architecture",
+        "Ocean View",
+        "Urban Design",
+        "VR Model",
+        "Country Style Design",
+        "Bright Church"
+    ];
+
     return (
-        <div className="px-6 py-16">
+        <div className="px-8 py-16">
           <h2 className="text-3xl font-semibold text-center mb-6">Visit the Gallery</h2>
-          <div className="relative">
-            <div className="flex overflow-hidden space-x-4">
-              {/* Display 4 images based on current index */}
+          <div className="relative max-w-7xl mx-auto">
+            <div className="flex overflow-hidden gap-4">
               {displayedImages.map((src, index) => (
-                <img 
-                  key={index} 
-                  src={src} 
-                  className={`w-64 rounded-lg transition-opacity duration-300 ${fade ? 'opacity-0' : 'opacity-100'}`} 
-                  alt={`Gallery Image ${index + 1}`} 
-                />
+                <div key={index} className="flex-1 bg-white rounded-3xl p-4 shadow-lg">
+                  <h3 className="text-xl font-medium mb-3 text-black">
+                    {titles[(currentIndex + index) % 7]}
+                  </h3>
+                  <div className="relative aspect-square">
+                    <img 
+                      src={src} 
+                      className={`w-full h-full object-cover rounded-2xl transition-opacity duration-300 ${fade ? 'opacity-0' : 'opacity-100'}`} 
+                      alt={`Gallery Image ${index + 1}`} 
+                    />
+                  </div>
+                </div>
               ))}
             </div>
             <button 
               onClick={prevImage} 
-              className="absolute left-0 transform -translate-y-1/2 top-1/2 transition-transform duration-200 hover:scale-110"
+              className="absolute -left-12 transform -translate-y-1/2 top-1/2 transition-transform duration-200 hover:scale-110"
             >
-              ←
-            </button> {/* Left arrow button */}
+              <img src="larrow.png" alt="Previous" className="w-8 h-8" />
+            </button>
             <button 
               onClick={nextImage} 
-              className="absolute right-0 transform -translate-y-1/2 top-1/2 transition-transform duration-200 hover:scale-110"
+              className="absolute -right-12 transform -translate-y-1/2 top-1/2 transition-transform duration-200 hover:scale-110"
             >
-              →
-            </button> {/* Right arrow button */}
+              <img src="rarrow.png" alt="Next" className="w-8 h-8" />
+            </button>
           </div>
         </div>
     );

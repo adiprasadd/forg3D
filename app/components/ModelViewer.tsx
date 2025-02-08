@@ -1,81 +1,87 @@
-"use client";
+'use client';
+
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
-import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
-import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 
 interface ModelViewerProps {
-  objUrl: string;
-  mtlUrl?: string;
+  modelUrl: string;
+  exposure?: number;
+  cameraControls?: boolean;
+  autoRotate?: boolean;
+  shadowIntensity?: number;
 }
 
-export default function ModelViewer({ objUrl, mtlUrl }: ModelViewerProps) {
+export default function ModelViewer({ 
+  modelUrl, 
+  exposure = 0.8,
+  cameraControls = false,
+  autoRotate = false,
+  shadowIntensity = 0.2
+}: ModelViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // Setup
+    // Scene setup
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x1a1a1a);  // Dark background
-
     const camera = new THREE.PerspectiveCamera(
       75,
       containerRef.current.clientWidth / containerRef.current.clientHeight,
       0.1,
       1000
     );
-    camera.position.z = 5;
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    // Renderer setup
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
     containerRef.current.appendChild(renderer.domElement);
 
-    // Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    // Lights
+    const topLight = new THREE.DirectionalLight(0xffffff, 1);
+    topLight.position.set(500, 500, 500);
+    topLight.castShadow = true;
+    scene.add(topLight);
+
+    const ambientLight = new THREE.AmbientLight(0x333333, 1);
     scene.add(ambientLight);
-    
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-    directionalLight.position.set(1, 1, 1);
-    scene.add(directionalLight);
+
+    // Camera position
+    camera.position.z = 5;
 
     // Controls
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
 
-    // Load Model
-    const loadModel = async () => {
-      if (mtlUrl) {
-        const mtlLoader = new MTLLoader();
-        const materials = await mtlLoader.loadAsync(mtlUrl);
-        materials.preload();
-
-        const objLoader = new OBJLoader();
-        objLoader.setMaterials(materials);
-        const object = await objLoader.loadAsync(objUrl);
-
-        // Center the model
-        const box = new THREE.Box3().setFromObject(object);
-        const center = box.getCenter(new THREE.Vector3());
-        object.position.sub(center);
-        
-        scene.add(object);
-      } else {
-        const objLoader = new OBJLoader();
-        const object = await objLoader.loadAsync(objUrl);
+    // Load GLTF Model
+    const loader = new GLTFLoader();
+    loader.load(
+      modelUrl,
+      (gltf) => {
+        const model = gltf.scene;
         
         // Center the model
-        const box = new THREE.Box3().setFromObject(object);
+        const box = new THREE.Box3().setFromObject(model);
         const center = box.getCenter(new THREE.Vector3());
-        object.position.sub(center);
+        model.position.sub(center);
         
-        scene.add(object);
+        // Adjust camera to fit model
+        const size = box.getSize(new THREE.Vector3());
+        const maxDim = Math.max(size.x, size.y, size.z);
+        camera.position.z = maxDim * 2;
+        
+        scene.add(model);
+      },
+      (progress) => {
+        console.log((progress.loaded / progress.total * 100) + '% loaded');
+      },
+      (error) => {
+        console.error('Error loading model:', error);
       }
-    };
-
-    loadModel();
+    );
 
     // Animation loop
     function animate() {
@@ -83,18 +89,18 @@ export default function ModelViewer({ objUrl, mtlUrl }: ModelViewerProps) {
       controls.update();
       renderer.render(scene, camera);
     }
-    animate();
 
-    // Handle resize
-    const handleResize = () => {
+    // Handle window resize
+    function handleResize() {
       if (!containerRef.current) return;
       
       camera.aspect = containerRef.current.clientWidth / containerRef.current.clientHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
-    };
+    }
 
     window.addEventListener('resize', handleResize);
+    animate();
 
     // Cleanup
     return () => {
@@ -102,7 +108,7 @@ export default function ModelViewer({ objUrl, mtlUrl }: ModelViewerProps) {
       containerRef.current?.removeChild(renderer.domElement);
       renderer.dispose();
     };
-  }, [objUrl, mtlUrl]);
+  }, [modelUrl]);
 
   return <div ref={containerRef} className="w-full h-full" />;
 }

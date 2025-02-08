@@ -1,108 +1,101 @@
-"use client";
-import { useEffect, useRef } from 'react';
-import * as THREE from 'three';
-import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
-import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import fs from 'fs';
+import path from 'path';
+import ModelViewer from '../../components/ModelViewer';
+import ProductDetails from '../../components/ProductDetails';
 
-interface ModelViewerProps {
-  objUrl: string;
-  mtlUrl?: string;
-}
 
-export default function ModelViewer({ objUrl, mtlUrl }: ModelViewerProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!containerRef.current) return;
-
-    // Setup
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x1a1a1a);  // Dark background
-
-    const camera = new THREE.PerspectiveCamera(
-      75,
-      containerRef.current.clientWidth / containerRef.current.clientHeight,
-      0.1,
-      1000
-    );
-    camera.position.z = 5;
-
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
-    containerRef.current.appendChild(renderer.domElement);
-
-    // Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-    scene.add(ambientLight);
+async function getModelDetails(id: string) {
+    const modelDir = path.join(process.cwd(), 'public', 'uploads', id);
+    const metadataPath = path.join(modelDir, 'metadata.json');
     
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-    directionalLight.position.set(1, 1, 1);
-    scene.add(directionalLight);
-
-    // Controls
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.05;
-
-    // Load Model
-    const loadModel = async () => {
-      if (mtlUrl) {
-        const mtlLoader = new MTLLoader();
-        const materials = await mtlLoader.loadAsync(mtlUrl);
-        materials.preload();
-
-        const objLoader = new OBJLoader();
-        objLoader.setMaterials(materials);
-        const object = await objLoader.loadAsync(objUrl);
-
-        // Center the model
-        const box = new THREE.Box3().setFromObject(object);
-        const center = box.getCenter(new THREE.Vector3());
-        object.position.sub(center);
-        
-        scene.add(object);
-      } else {
-        const objLoader = new OBJLoader();
-        const object = await objLoader.loadAsync(objUrl);
-        
-        // Center the model
-        const box = new THREE.Box3().setFromObject(object);
-        const center = box.getCenter(new THREE.Vector3());
-        object.position.sub(center);
-        
-        scene.add(object);
-      }
-    };
-
-    loadModel();
-
-    // Animation loop
-    function animate() {
-      requestAnimationFrame(animate);
-      controls.update();
-      renderer.render(scene, camera);
+    try {
+      const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf-8'));
+      return {
+        id,
+        name: metadata.name,
+        description: metadata.description,
+        price: metadata.price,
+        thumbnailUrl: `/uploads/${id}/cover.png`,
+        modelUrl: `/uploads/${id}/model.gltf`,  // Updated to use GLTF
+      };
+    } catch (error) {
+      console.error(`Error reading metadata for ${id}:`, error);
+      return null;
     }
-    animate();
+  }
+  
+  export default async function ProductPage({ params }: { params: { id: string } }) {
+    const model = await getModelDetails(params.id);
+  
+    if (!model) {
+      return <div>Product not found</div>;
+    }
+  
+    return (
+      <div className="container mx-auto p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* 3D Model Viewer */}
+          <div className="bg-gray-900 rounded-xl h-[500px]">
+            <ModelViewer 
+              modelUrl={model.modelUrl} 
+              exposure={1.5}
+              cameraControls={true}
+              autoRotate={true}
+              shadowIntensity={0.7}
+            />
+          </div>
+  
+          {/* Product Information */}
+          <ProductDetails 
+            name={model.name}
+            description={model.description}
+            price={model.price}
+          />
+        </div>
+      </div>
+    );
+  }
+// import fs from 'fs';
+// import path from 'path';
+// import ModelViewer from '../../components/ModelViewer';
 
-    // Handle resize
-    const handleResize = () => {
-      if (!containerRef.current) return;
-      
-      camera.aspect = containerRef.current.clientWidth / containerRef.current.clientHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
-    };
-
-    window.addEventListener('resize', handleResize);
-
-    // Cleanup
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      containerRef.current?.removeChild(renderer.domElement);
-      renderer.dispose();
-    };
-  }, [objUrl, mtlUrl]);
-
-  return <div ref={containerRef} className="w-full h-full" />;
-}
+// async function getModelDetails(id: string) {
+//     const modelDir = path.join(process.cwd(), 'public', 'uploads', id);
+//     const metadataPath = path.join(modelDir, 'metadata.json');
+    
+//     try {
+//       const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf-8'));
+//       return {
+//         id,
+//         name: metadata.name,
+//         description: metadata.description,
+//         price: metadata.price,
+//         thumbnailUrl: `/uploads/${id}/cover.png`,
+//         modelUrl: `/uploads/${id}/model.gltf`,  // Updated to use GLTF
+//       };
+//     } catch (error) {
+//       console.error(`Error reading metadata for ${id}:`, error);
+//       return null;
+//     }
+//   }
+  
+//   export default async function ProductPage({ params }: { params: { id: string } }) {
+//     const model = await getModelDetails(params.id);
+  
+//     if (!model) {
+//       return <div>Product not found</div>;
+//     }
+  
+//     return (
+//       <div className="container mx-auto p-6">
+//         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+//           {/* 3D Model Viewer */}
+//           <div className="bg-gray-900 rounded-xl h-[500px]">
+//             <ModelViewer modelUrl={model.modelUrl} />
+//           </div>
+          
+//           {/* ... rest of the existing code ... */}
+//         </div>
+//       </div>
+//     );
+//   }
