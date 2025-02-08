@@ -20,10 +20,6 @@ const config: StoryConfig = {
 
 const client = StoryClient.newClient(config);
 
-// Constants
-const WIP_TOKEN = process.env.WIP_TOKEN_ADDRESS as Address;
-const ROYALTY_POLICY_LAP = process.env.ROYALTY_POLICY_LAP_ADDRESS as Address;
-
 async function testModelRegistration() {
   try {
     // Mock metadata
@@ -58,29 +54,29 @@ async function testModelRegistration() {
       licenseTermsData: [{
         terms: {
           transferable: true,
-          royaltyPolicy: ROYALTY_POLICY_LAP,
-          defaultMintingFee: BigInt(10),
-          expiration: BigInt(0),
-          commercialUse: true,
-          commercialAttribution: true,
+          royaltyPolicy: zeroAddress,  // Use zero address for now
+          defaultMintingFee: BigInt(0), // No minting fee
+          expiration: BigInt(0),        // No expiration
+          commercialUse: false,         // Disable commercial use for now
+          commercialAttribution: false,
           commercializerChecker: zeroAddress,
           commercializerCheckerData: '0x',
-          commercialRevShare: 15,
+          commercialRevShare: 0,        // No revenue share
           commercialRevCeiling: BigInt(0),
           derivativesAllowed: true,
           derivativesAttribution: true,
           derivativesApproval: false,
           derivativesReciprocal: true,
-          derivativeRevCeiling: BigInt('100000000000000000000000'),
-          currency: WIP_TOKEN,
+          derivativeRevCeiling: BigInt(0),
+          currency: zeroAddress,        // Use zero address for now
           uri: '',
         },
         licensingConfig: {
-          isSet: true,
-          mintingFee: BigInt(10),
+          isSet: false,
+          mintingFee: BigInt(0),
           licensingHook: zeroAddress,
           hookData: '0x',
-          commercialRevShare: 15,
+          commercialRevShare: 0,
           disabled: false,
           expectMinimumGroupRewardShare: 0,
           expectGroupRewardPool: zeroAddress,
