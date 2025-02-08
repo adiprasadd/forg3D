@@ -2,6 +2,7 @@ import { LicenseTerms, WIP_TOKEN_ADDRESS } from "@story-protocol/core-sdk";
 import { Address, zeroAddress, zeroHash } from "viem";
 import { STORY_PROTOCOL_CONFIG } from "./config";
 import type { CommercialTerms } from "./types";
+import { StoryClient } from "@story-protocol/core-sdk";
 
 export function createCommercialRemixTerms(
   terms: CommercialTerms
@@ -37,3 +38,57 @@ export const defaultLicensingConfig = {
   expectMinimumGroupRewardShare: 0,
   expectGroupRewardPool: zeroAddress,
 };
+
+export interface LicenseTerms {
+  type: string;
+  commercial: boolean;
+  modifications: boolean;
+  attribution: boolean;
+  territory: string;
+  duration: number; // in seconds
+}
+
+export async function createLicense(
+  client: StoryClient,
+  ipAssetId: string,
+  terms: LicenseTerms
+) {
+  try {
+    const license = await client.licensing.create({
+      ipAssetId,
+      terms: {
+        commercial: terms.commercial,
+        modifications: terms.modifications,
+        attribution: terms.attribution,
+        territory: terms.territory,
+        duration: terms.duration,
+        licenseType: terms.type,
+      },
+    });
+
+    return license;
+  } catch (error) {
+    console.error("Error creating license:", error);
+    throw error;
+  }
+}
+
+export async function verifyLicense(client: StoryClient, licenseId: string) {
+  try {
+    const isValid = await client.licensing.verify(licenseId);
+    return isValid;
+  } catch (error) {
+    console.error("Error verifying license:", error);
+    throw error;
+  }
+}
+
+export async function getLicenseTerms(client: StoryClient, licenseId: string) {
+  try {
+    const terms = await client.licensing.getTerms(licenseId);
+    return terms;
+  } catch (error) {
+    console.error("Error getting license terms:", error);
+    throw error;
+  }
+}

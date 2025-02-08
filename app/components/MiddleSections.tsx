@@ -1,24 +1,29 @@
 export default function MiddleSections() {
-    return (
-      <div>
-        <div className="flex px-6 py-16">
-          <div className="flex-1">
-            <img src="middle1.png" className="rounded-lg" alt="Description" />
-          </div>
-          <div className="flex-1 text-center">
-            <h2 className="text-3xl font-semibold">Section Title</h2>
-            <p className="text-lg text-gray-600">Some descriptive text about this section.</p>
-          </div>
+  return (
+    <div className="max-w-6xl mx-auto py-20">
+      <div className="grid grid-cols-3 gap-8">
+        <div className="p-8 bg-gray-900 rounded-xl">
+          <h3 className="text-2xl font-bold mb-4">For Creators</h3>
+          <p className="text-gray-300">
+            License your 3D models and earn royalties automatically. Get paid
+            for every use of your work.
+          </p>
         </div>
-        <div className="flex px-6 py-16">
-          <div className="flex-1 text-center">
-            <h2 className="text-3xl font-semibold">Another Section Title</h2>
-            <p className="text-lg text-gray-600">Some descriptive text about this section.</p>
-          </div>
-          <div className="flex-1">
-            <img src="middle2.png" className="rounded-lg" alt="Description" />
-          </div>
+        <div className="p-8 bg-gray-900 rounded-xl">
+          <h3 className="text-2xl font-bold mb-4">For Studios</h3>
+          <p className="text-gray-300">
+            Access high-quality 3D models instantly with clear licensing terms
+            and usage rights.
+          </p>
+        </div>
+        <div className="p-8 bg-gray-900 rounded-xl">
+          <h3 className="text-2xl font-bold mb-4">AI Integration</h3>
+          <p className="text-gray-300">
+            Generate base models from text and refine them with professional
+            tools.
+          </p>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
