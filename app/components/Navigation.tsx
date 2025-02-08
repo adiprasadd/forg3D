@@ -10,7 +10,7 @@ export default function Navigation() {
   const { error } = useStoryProtocol();
 
   return (
-    <nav className="py-4 px-6 border-b border-gray-700">
+    <nav className="py-4 px-6 border-b border-gray-700 overflow-x-auto"> {/* Added overflow-x-auto */}
       <div className="flex items-center justify-between">
         <Link href="/" className="text-2xl font-bold text-blue-400" aria-label="Home">
           StoryForge
