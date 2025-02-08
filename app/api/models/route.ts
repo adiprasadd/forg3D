@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { StoryClient } from "@story-protocol/core-sdk";
 import { storyProtocol } from "@/app/lib/story-protocol/client";
+import { createAndRegisterIPAsset } from "@/app/lib/story-protocol/ip-asset";
 
 export async function GET() {
   try {
@@ -27,6 +28,18 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const data = await request.json();
+    const { name, description, fileUrl, fileId } = data;
+
+    // Validate required fields
+    if (!name || !description || !fileUrl || !fileId) {
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 }
+      );
+    }
+
+    // Create IP Asset with Story Protocol
     const client = storyProtocol.getClient();
     if (!client) {
       return NextResponse.json(
@@ -35,25 +48,28 @@ export async function POST(request: Request) {
       );
     }
 
-    const data = await request.json();
-
-    // Register model as IP asset
-    const response = await client.ipAsset.register({
-      name: data.name,
-      description: data.description,
-      mediaUrl: data.modelUrl,
-      licenseTerms: data.licenseTerms,
-      licensingConfig: {
-        mintingFee: data.mintingFee,
-        royaltyPolicy: {
-          royaltyType: "PERCENTAGE",
-          registrationFee: "0",
-          royaltyAmount: data.royaltyPercentage,
-        },
+    const ipAsset = await createAndRegisterIPAsset(client, {
+      name,
+      symbol: name.slice(0, 5).toUpperCase(),
+      metadata: {
+        uri: fileUrl,
+        hash: fileId,
       },
     });
 
-    return NextResponse.json({ success: true, ipAssetId: response.ipAssetId });
+    // Here you would typically also save the model data to your database
+    // const model = await db.models.create({
+    //   name,
+    //   description,
+    //   fileUrl,
+    //   fileId,
+    //   ipAssetId: ipAsset.ipId,
+    // });
+
+    return NextResponse.json({
+      id: ipAsset.ipId,
+      ...data,
+    });
   } catch (error) {
     console.error("Error creating model:", error);
     return NextResponse.json(

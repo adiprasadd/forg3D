@@ -1,30 +1,36 @@
 import { NextResponse } from "next/server";
-import { Web3Storage } from "web3.storage";
-
-// Initialize Web3.Storage client
-const client = new Web3Storage({
-  token: process.env.WEB3_STORAGE_TOKEN || "",
-});
+import { s3Service } from "@/app/lib/s3/utils";
 
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
-    const file = formData.get("file") as File;
-
+    const file = formData.get('file') as File;
+    
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    // Upload to Web3.Storage (IPFS)
-    const cid = await client.put([file]);
-    const modelUrl = `https://${cid}.ipfs.dweb.link/${file.name}`;
+    // Generate presigned URL for upload
+    const uploadUrl = await s3Service.generateUploadUrl(
+      file.name,
+      file.type
+    );
 
-    return NextResponse.json({ modelUrl });
+    return NextResponse.json({
+      uploadUrl,
+      fileKey: `models/${Date.now()}-${file.name}`,
+    });
   } catch (error) {
-    console.error("Error uploading file:", error);
+    console.error("Error handling file upload:", error);
     return NextResponse.json(
-      { error: "Failed to upload file" },
+      { error: "Failed to process file upload" },
       { status: 500 }
     );
   }
 }
+
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
