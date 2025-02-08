@@ -1,141 +1,116 @@
-import { useState, useCallback } from "react";
+"use client";
+
+import { useState } from "react";
 import { useStoryProtocol } from "./useStoryProtocol";
-import { isAddress } from "viem";
+import { toHex, Address, zeroAddress } from "viem";
+import { LicenseTerms, LicensingConfig } from "@story-protocol/core-sdk";
 
-interface RegisterParams {
-  nftContract: `0x${string}`;
-  tokenId: string;
-  metadata: {
-    uri: string;
-    hash: string;
-  };
-}
-
-interface CreateParams {
+interface RegisterIPAssetParams {
   name: string;
-  symbol: string;
-  metadata: {
-    uri: string;
-    hash: string;
-  };
-}
-
-interface RegistrationResponse {
-  success: boolean;
-  txHash: string;
-  ipId: string;
-  tokenId?: string;
-  licenseTermsId?: string;
-  collectionAddress?: string;
+  description: string;
+  mediaUrl: string;
+  type: string;
 }
 
 export function useIPAssetRegistration() {
-  const { client } = useStoryProtocol();
+  const { client, isInitialized } = useStoryProtocol();
   const [isRegistering, setIsRegistering] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const validateParams = useCallback(
-    (params: RegisterParams | CreateParams) => {
-      if ("nftContract" in params) {
-        if (!isAddress(params.nftContract)) {
-          throw new Error("Invalid NFT contract address");
-        }
-        if (!params.tokenId) {
-          throw new Error("Token ID is required");
-        }
-      } else {
-        if (!params.name || !params.symbol) {
-          throw new Error("Name and symbol are required");
-        }
-      }
+  const createCollection = async (name: string) => {
+    if (!client || !isInitialized) {
+      throw new Error("Story Protocol client not initialized");
+    }
 
-      if (!params.metadata?.uri || !params.metadata?.hash) {
-        throw new Error("Invalid metadata: URI and hash are required");
-      }
-    },
-    []
-  );
+    const collection = await client.nftClient.createNFTCollection({
+      name: `${name} Collection`,
+      symbol: "3DM",
+      isPublicMinting: true,
+      mintOpen: true,
+      mintFeeRecipient: zeroAddress,
+      contractURI: "",
+      txOptions: { waitForTransaction: true },
+    });
 
-  const registerExistingNFT = async (
-    params: RegisterParams
-  ): Promise<RegistrationResponse> => {
-    if (!client) {
+    return collection.spgNftContract as Address;
+  };
+
+  const registerIPAsset = async ({
+    name,
+    description,
+    mediaUrl,
+    type,
+  }: RegisterIPAssetParams) => {
+    if (!client || !isInitialized) {
       throw new Error("Story Protocol client not initialized");
     }
 
     try {
-      validateParams(params);
       setIsRegistering(true);
-      setError(null);
 
-      const response = await fetch("/api/models/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "register",
-          ...params,
-        }),
+      // First create a collection for the model
+      const spgNftContract = await createCollection(name);
+
+      // Create license terms for the model
+      const terms: LicenseTerms = {
+        transferable: true,
+        royaltyPolicy: "0xBe54FB168b3c982b7AaE60dB6CF75Bd8447b390E", // RoyaltyPolicyLAP address
+        defaultMintingFee: BigInt(0),
+        expiration: BigInt(0),
+        commercialUse: true,
+        commercialAttribution: true,
+        commercializerChecker: zeroAddress,
+        commercializerCheckerData: "0x",
+        commercialRevShare: 10, // 10% revenue share
+        commercialRevCeiling: BigInt(0),
+        derivativesAllowed: true,
+        derivativesAttribution: true,
+        derivativesApproval: false,
+        derivativesReciprocal: true,
+        derivativeRevCeiling: BigInt(0),
+        currency: "0x1514000000000000000000000000000000000000", // WIP token address
+        uri: "",
+      };
+
+      const licensingConfig: LicensingConfig = {
+        isSet: false,
+        mintingFee: BigInt(0),
+        licensingHook: zeroAddress,
+        hookData: "0x",
+        commercialRevShare: 0,
+        disabled: false,
+        expectMinimumGroupRewardShare: 0,
+        expectGroupRewardPool: zeroAddress,
+      };
+
+      // Register IP Asset with metadata and license terms
+      const response = await client.ipAsset.mintAndRegisterIpAssetWithPilTerms({
+        spgNftContract,
+        allowDuplicates: true,
+        licenseTermsData: [{ terms, licensingConfig }],
+        ipMetadata: {
+          ipMetadataURI: mediaUrl,
+          ipMetadataHash: toHex(mediaUrl, { size: 32 }),
+          nftMetadataHash: toHex(`${name}-metadata`, { size: 32 }),
+          nftMetadataURI: mediaUrl,
+        },
+        txOptions: { waitForTransaction: true },
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to register IP asset");
-      }
+      console.log("IP Asset registered:", {
+        txHash: response.txHash,
+        tokenId: response.tokenId,
+        ipId: response.ipId,
+        licenseTermsId: response.licenseTermsId,
+      });
 
-      return await response.json();
-    } catch (err) {
-      console.error("Error registering IP asset:", err);
-      const message =
-        err instanceof Error ? err.message : "Failed to register IP asset";
-      setError(message);
-      throw new Error(message);
+      return response.ipId;
+    } catch (error) {
+      console.error("IP Asset registration error:", error);
+      throw error;
     } finally {
       setIsRegistering(false);
     }
   };
 
-  const createAndRegisterNFT = async (params: CreateParams) => {
-    if (!client) {
-      setError("Story Protocol client not initialized");
-      return;
-    }
-
-    try {
-      setIsRegistering(true);
-      setError(null);
-
-      const response = await fetch("/api/models/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "create",
-          ...params,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to create and register IP asset");
-      }
-
-      return await response.json();
-    } catch (err) {
-      console.error("Error creating and registering IP asset:", err);
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to create and register IP asset"
-      );
-      throw err;
-    } finally {
-      setIsRegistering(false);
-    }
-  };
-
-  return {
-    registerExistingNFT,
-    createAndRegisterNFT,
-    isRegistering,
-    error,
-    clearError: () => setError(null),
-  };
+  return { registerIPAsset, isRegistering };
 }

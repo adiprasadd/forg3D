@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useWallet } from "./WalletProvider";
+import { useStoryProtocol } from "../hooks/useStoryProtocol";
+import { useIPAssetRegistration } from "../hooks/useIPAssetRegistration";
 
 interface UploadButtonProps {
   onUploadComplete: (result: { fileName: string }) => void;
@@ -19,6 +22,9 @@ export default function UploadButton({
   className = "",
   label = "Upload Model",
 }: UploadButtonProps) {
+  const { isConnected, connect } = useWallet();
+  const { isInitialized, error: storyError, reconnect } = useStoryProtocol();
+  const { registerIPAsset, isRegistering } = useIPAssetRegistration();
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<boolean>(false); // Add this state
@@ -76,6 +82,8 @@ export default function UploadButton({
       setIsUploading(false);
     }
   };
+
+  const isProcessing = isUploading || isRegistering;
 
   return (
     <div className="max-w-md mx-auto bg-gray-800 p-6 rounded-lg shadow-lg">

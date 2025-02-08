@@ -1,59 +1,40 @@
+"use client";
+
 import { useState } from "react";
 import { useStoryProtocol } from "./useStoryProtocol";
+import { ethers } from "ethers";
 
 interface PayRoyaltyParams {
-  modelId: string;
+  ipId: string;
   amount: string;
-  payerIpId?: string;
 }
 
 export function useRoyaltyPayment() {
-  const { client } = useStoryProtocol();
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { client, isInitialized } = useStoryProtocol();
+  const [isPaying, setIsPaying] = useState(false);
 
-  const payRoyalty = async (params: PayRoyaltyParams) => {
-    if (!client) {
-      setError("Story Protocol client not initialized");
-      return;
+  const payRoyalty = async ({ ipId, amount }: PayRoyaltyParams) => {
+    if (!client || !isInitialized) {
+      throw new Error("Story Protocol client not initialized");
     }
 
     try {
-      setIsProcessing(true);
-      setError(null);
+      setIsPaying(true);
 
-      const response = await fetch(
-        `/api/models/${params.modelId}/pay-royalty`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            amount: params.amount,
-            payerIpId: params.payerIpId,
-          }),
-        }
-      );
+      const tx = await client.payments.payRoyalty({
+        ipId,
+        amount: ethers.parseEther(amount),
+      });
 
-      if (!response.ok) {
-        throw new Error("Failed to process royalty payment");
-      }
-
-      const data = await response.json();
-      return data;
-    } catch (err) {
-      console.error("Error processing royalty payment:", err);
-      setError(
-        err instanceof Error ? err.message : "Failed to process royalty payment"
-      );
-      throw err;
+      const receipt = await tx.wait();
+      return receipt.transactionHash;
+    } catch (error) {
+      console.error("Royalty payment error:", error);
+      throw error;
     } finally {
-      setIsProcessing(false);
+      setIsPaying(false);
     }
   };
 
-  return {
-    payRoyalty,
-    isProcessing,
-    error,
-  };
+  return { payRoyalty, isPaying };
 }
