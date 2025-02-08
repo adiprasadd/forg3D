@@ -1,8 +1,12 @@
-import { IpMetadata } from '@story-protocol/core-sdk'
+import { IpMetadata, LicenseTerms, LicensingConfig } from '@story-protocol/core-sdk'
 import { client } from './utils'
 import { uploadJSONToIPFS, uploadFileToIPFS } from './scripts/uploadToIpfs'
 import { createHash } from 'crypto'
-import { Address } from 'viem'
+import { Address, zeroAddress, toHex } from 'viem'
+
+// Constants for Story Protocol addresses
+const WIP_TOKEN = process.env.WIP_TOKEN_ADDRESS
+const ROYALTY_POLICY_LAP = process.env.ROYALTY_POLICY_LAP_ADDRESS
 
 interface Model3DMetadata {
   name: string;
@@ -16,6 +20,41 @@ interface Model3DMetadata {
     textures?: boolean;
     animations?: boolean;
   };
+}
+
+function create3DModelLicenseTerms(): { terms: LicenseTerms, licensingConfig: LicensingConfig } {
+  const terms: LicenseTerms = {
+    transferable: true,
+    royaltyPolicy: ROYALTY_POLICY_LAP,
+    defaultMintingFee: BigInt(10), // 10 WIP tokens
+    expiration: BigInt(0), // No expiration
+    commercialUse: true,
+    commercialAttribution: true,
+    commercializerChecker: zeroAddress,
+    commercializerCheckerData: '0x',
+    commercialRevShare: 15, // 15% revenue share for original creator
+    commercialRevCeiling: BigInt(0),
+    derivativesAllowed: true,
+    derivativesAttribution: true,
+    derivativesApproval: false,
+    derivativesReciprocal: true,
+    derivativeRevCeiling: BigInt('100000000000000000000000'), // 100,000 WIP tokens
+    currency: WIP_TOKEN,
+    uri: '',
+  }
+
+  const licensingConfig: LicensingConfig = {
+    isSet: true,
+    mintingFee: BigInt(10), // 10 WIP tokens
+    licensingHook: zeroAddress,
+    hookData: '0x',
+    commercialRevShare: 15,
+    disabled: false,
+    expectMinimumGroupRewardShare: 0,
+    expectGroupRewardPool: zeroAddress,
+  }
+
+  return { terms, licensingConfig }
 }
 
 export async function register3DModel(metadata: Model3DMetadata) {
@@ -58,9 +97,13 @@ export async function register3DModel(metadata: Model3DMetadata) {
   const nftIpfsHash = await uploadJSONToIPFS(nftMetadata)
   const nftHash = createHash('sha256').update(JSON.stringify(nftMetadata)).digest('hex')
 
-  // Register IP using SPG
-  const response = await client.ipAsset.mintAndRegisterIp({
+  // Create license terms configuration
+  const { terms, licensingConfig } = create3DModelLicenseTerms()
+
+  // Register IP, mint NFT, and attach license terms in one transaction
+  const response = await client.ipAsset.mintAndRegisterIpAssetWithPilTerms({
     spgNftContract: process.env.SPG_NFT_CONTRACT_ADDRESS as Address,
+    licenseTermsData: [{ terms, licensingConfig }],
     allowDuplicates: true,
     ipMetadata: {
       ipMetadataURI: `https://ipfs.io/ipfs/${ipIpfsHash}`,
