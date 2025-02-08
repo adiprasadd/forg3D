@@ -12,7 +12,11 @@ export default function Navigation() {
   return (
     <nav className="py-4 px-6 border-b border-gray-700">
       <div className="flex items-center justify-between">
-        <Link href="/" className="text-2xl font-bold text-blue-400" aria-label="Home">
+        <Link
+          href="/"
+          className="text-2xl font-bold text-blue-400"
+          aria-label="Home"
+        >
           StoryForge
         </Link>
         <div className="flex items-center space-x-6">
@@ -38,19 +42,27 @@ export default function Navigation() {
             }}
             label="Upload Model"
           />
-          <Link href="/login" className="hover:text-blue-400 transition">
-            Login
-          </Link>
-          <Link href="/register" className="hover:text-blue-400 transition">
-            Register
-          </Link>
+          <SignedOut>
+            <SignInButton mode="modal">
+              <button className="hover:text-blue-400 transition">
+                Sign In
+              </button>
+            </SignInButton>
+          </SignedOut>
+          <SignedIn>
+            <UserButton afterSignOutUrl="/" />
+          </SignedIn>
         </div>
+      </div>
+      {error && (
+        <div className="mt-2 text-red-400 text-sm text-center">{error}</div>
       )}
     </nav>
   );
 }
 
-{/* <div className="space-x-6">
+{
+  /* <div className="space-x-6">
   <Link href="/marketplace" className="hover:text-blue-400 transition">
     Marketplace
   </Link>
@@ -75,5 +87,5 @@ export default function Navigation() {
       ? "Connected"
       : "Connect Wallet"}
   </button>
-</div> */}
-      
+</div> */
+}
