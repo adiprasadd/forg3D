@@ -8,7 +8,7 @@ export default function Home() {
   return (
     <main>
       <Navigation />
-      <div className="bg-gray-800 px-16 py-16">
+      <div className="bg-gray-800 px-16">
         <HeroSection />
         <MiddleSections />
         <GallerySection />

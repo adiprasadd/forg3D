@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useStoryProtocol } from "../hooks/useStoryProtocol";
 
 export default function Navigation() {
-  const { isConnecting, error, connectWallet, isInitialized } =
+  const { error} =
     useStoryProtocol();
 
   return (

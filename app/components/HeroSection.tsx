@@ -1,24 +1,32 @@
 export default function HeroSection() {
-  return (
-    <div className="max-w-6xl mx-auto py-20">
-      <div className="text-center">
-        <h1 className="text-6xl font-bold mb-6 bg-gradient-to-r from-blue-400 to-purple-500 text-transparent bg-clip-text">
-          3D Model Marketplace
-        </h1>
-        <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
-          The first decentralized marketplace for high-fidelity 3D models.
-          Powered by Story Protocol for secure IP licensing and royalty
-          distribution.
-        </p>
-        <div className="flex gap-6 justify-center">
-          <button className="px-8 py-4 bg-blue-500 rounded-lg hover:bg-blue-600 transition font-semibold">
-            Browse Models
-          </button>
-          <button className="px-8 py-4 border-2 border-blue-500 rounded-lg hover:bg-blue-500/10 transition font-semibold">
-            Start Creating
-          </button>
+    return (
+      <div className="flex items-center px-6 py-8" style={{ height: '80vh' }}>
+        <div className="flex-1 mx-auto">
+          <video className="w-full h-full rounded-lg" controls>
+            <source src="/hero.mp4" type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
+        </div>
+        <div className="flex-1 text-center mx-auto" >
+          <h1 className="text-5xl font-bold mb-6">Welcome to Our Platform</h1>
+          <p className="text-xl text-gray-700">Transform your ideas into reality.</p>
         </div>
       </div>
-    </div>
-  );
+    );
 }
+// export default function HeroSection() {
+//     return (
+//       <div className="flex px-6 py-16" style={{ height: '80vh' }}>
+//         <div className="flex-1 mx-auto" style={{ margin: '0 2.5%', width: '45%' }}>
+//           <video className="w-full h-full rounded-lg" controls>
+//             <source src="/hero.mp4" type="video/mp4" />
+//             Your browser does not support the video tag.
+//           </video>
+//         </div>
+//         <div className="flex-1 text-center mx-auto" style={{ margin: '0 2.5%', width: '45%' }}>
+//           <h1 className="text-5xl font-bold mb-6">Welcome to Our Platform</h1>
+//           <p className="text-xl text-gray-700">Transform your ideas into reality.</p>
+//         </div>
+//       </div>
+//     );
+// }
