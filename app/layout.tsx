@@ -7,6 +7,10 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Your App Name",
   description: "Your app description",
+  icons: {
+    icon: "/logo.png", 
+    apple: "/logo.png", 
+  }
 };
 
 export default function RootLayout({

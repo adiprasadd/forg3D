@@ -8,8 +8,9 @@ export default function HeroSection() {
           </video>
         </div>
         <div className="flex-1 text-center mx-auto" >
-          <h1 className="text-5xl font-bold mb-6">Welcome to Our Platform</h1>
-          <p className="text-xl text-gray-700">Transform your ideas into reality.</p>
+          <h1 className="text-5xl font-bold mb-6">Revolutionize Your 3D Creation Journey
+          </h1>
+          <p className="text-xl">Transform your creative vision into digital reality with blockchain-powered licensing.</p>
         </div>
       </div>
     );

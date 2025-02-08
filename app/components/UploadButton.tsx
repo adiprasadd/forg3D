@@ -17,6 +17,14 @@ interface ModelMetadata {
   description: string;
 }
 
+// Add this to handle the webkitdirectory attribute
+declare module 'react' {
+  interface InputHTMLAttributes<T> extends HTMLAttributes<T> {
+    webkitdirectory?: string;
+    directory?: string;
+  }
+}
+
 export default function UploadButton({
   onUploadComplete,
   className = "",
@@ -27,19 +35,52 @@ export default function UploadButton({
   const { registerIPAsset, isRegistering } = useIPAssetRegistration();
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<boolean>(false); // Add this state
+  const [success, setSuccess] = useState<boolean>(false);
   const [metadata, setMetadata] = useState<ModelMetadata>({
     name: "",
     price: 0,
     description: "",
   });
-  const [modelFile, setModelFile] = useState<File | null>(null);
+  const [folderContents, setFolderContents] = useState<{ [key: string]: File }>({});
   const [coverImage, setCoverImage] = useState<File | null>(null);
+
+  const handleFolderUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    const fileMap: { [key: string]: File } = {};
+    let hasGLTF = false;
+    
+    // Process all files from the folder
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const relativePath = file.webkitRelativePath;
+      
+      if (file.name === 'scene.gltf') {
+        // Rename scene.gltf to model.gltf but keep its path
+        const pathWithoutFile = relativePath.substring(0, relativePath.lastIndexOf('/') + 1);
+        const renamedFile = new File([file], 'model.gltf', { type: file.type });
+        fileMap[`${pathWithoutFile}model.gltf`] = renamedFile;
+        hasGLTF = true;
+      } else {
+        // Keep the original relative path for all other files
+        fileMap[relativePath] = file;
+      }
+    }
+
+    if (!hasGLTF) {
+      setError("No scene.gltf file found in the folder");
+      return;
+    }
+
+    setFolderContents(fileMap);
+    setError(null);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!modelFile || !coverImage) {
-      setError("Please select both a model file and a cover image");
+    if (Object.keys(folderContents).length === 0 || !coverImage) {
+      setError("Please select both a model folder and a cover image");
       return;
     }
   
@@ -49,10 +90,15 @@ export default function UploadButton({
       setSuccess(false);
   
       const timestamp = Date.now();
-      const baseFileName = `${timestamp}-${modelFile.name.split(".")[0]}`;
+      const baseFileName = `${timestamp}-${metadata.name.replace(/\s+/g, '-')}`;
   
       const formData = new FormData();
-      formData.append("model", modelFile);
+      
+      // Append all files from the folder with their relative paths
+      Object.entries(folderContents).forEach(([path, file]) => {
+        formData.append('modelFiles', file, path);
+      });
+      
       formData.append("cover", coverImage);
       formData.append("metadata", JSON.stringify(metadata));
       formData.append("baseFileName", baseFileName);
@@ -73,7 +119,7 @@ export default function UploadButton({
       
       // Reset form
       setMetadata({ name: "", price: 0, description: "" });
-      setModelFile(null);
+      setFolderContents({});
       setCoverImage(null);
     } catch (err) {
       console.error("Upload error:", err);
@@ -91,9 +137,10 @@ export default function UploadButton({
       
       {success && (
         <div className="mb-4 p-4 bg-green-500 text-white rounded-lg text-center">
-          Product successfully uploaded!
+          Model successfully uploaded!
         </div>
       )}
+
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Model Name */}
         <div>
@@ -136,17 +183,21 @@ export default function UploadButton({
           />
         </div>
 
-        {/* 3D Model File Upload */}
+        {/* Model Folder Upload */}
         <div>
-          <label className="block text-sm font-medium mb-2">3D Model File</label>
+          <label className="block text-sm font-medium mb-2">Model Folder</label>
           <input
             type="file"
-            onChange={(e) => setModelFile(e.target.files?.[0] || null)}
-            accept=".obj,.gltf,.glb"
+            onChange={handleFolderUpload}
+            webkitdirectory=""
+            directory=""
+            multiple
             className="w-full px-4 py-2 bg-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500"
             required
           />
-          <p className="text-sm text-gray-400 mt-1">Supported formats: .obj, .gltf, .glb</p>
+          <p className="text-sm text-gray-400 mt-1">
+            Select a folder containing scene.gltf, .bin files, and textures
+          </p>
         </div>
 
         {/* Cover Image Upload */}
@@ -172,17 +223,17 @@ export default function UploadButton({
         {/* Submit Button */}
         <button
           type="submit"
-          disabled={isUploading}
+          disabled={isProcessing}
           className="w-full px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 
                    transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isUploading ? (
+          {isProcessing ? (
             <span className="flex items-center justify-center">
               <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              Uploading...
+              Processing...
             </span>
           ) : (
             "Upload Model"
@@ -192,3 +243,447 @@ export default function UploadButton({
     </div>
   );
 }
+
+// "use client";
+
+// import { useState } from "react";
+// import { useWallet } from "./WalletProvider";
+// import { useStoryProtocol } from "../hooks/useStoryProtocol";
+// import { useIPAssetRegistration } from "../hooks/useIPAssetRegistration";
+
+// interface UploadButtonProps {
+//   onUploadComplete: (result: { fileName: string }) => void;
+//   className?: string;
+//   label?: string;
+// }
+
+// interface ModelMetadata {
+//   name: string;
+//   price: number;
+//   description: string;
+// }
+
+// // Add this to handle the webkitdirectory attribute
+// declare module 'react' {
+//   interface InputHTMLAttributes<T> extends HTMLAttributes<T> {
+//     webkitdirectory?: string;
+//     directory?: string;
+//   }
+// }
+
+// export default function UploadButton({
+//   onUploadComplete,
+//   className = "",
+//   label = "Upload Model",
+// }: UploadButtonProps) {
+//   const { isConnected, connect } = useWallet();
+//   const { isInitialized, error: storyError, reconnect } = useStoryProtocol();
+//   const { registerIPAsset, isRegistering } = useIPAssetRegistration();
+//   const [isUploading, setIsUploading] = useState(false);
+//   const [error, setError] = useState<string | null>(null);
+//   const [success, setSuccess] = useState<boolean>(false);
+//   const [metadata, setMetadata] = useState<ModelMetadata>({
+//     name: "",
+//     price: 0,
+//     description: "",
+//   });
+//   const [folderContents, setFolderContents] = useState<{ [key: string]: File }>({});
+//   const [coverImage, setCoverImage] = useState<File | null>(null);
+
+//   const handleFolderUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+//     const files = e.target.files;
+//     if (!files) return;
+
+//     const fileMap: { [key: string]: File } = {};
+//     let hasGLTF = false;
+    
+//     // Process all files from the folder
+//     for (let i = 0; i < files.length; i++) {
+//       const file = files[i];
+//       const fileName = file.name.toLowerCase();
+//       const relativePath = file.webkitRelativePath;
+      
+//       if (fileName === 'scene.gltf') {
+//         // Rename scene.gltf to model.gltf
+//         const renamedFile = new File([file], 'model.gltf', { type: file.type });
+//         fileMap['model.gltf'] = renamedFile;
+//         hasGLTF = true;
+//       } else if (fileName.endsWith('.bin')) {
+//         fileMap[fileName] = file;
+//       } else if (relativePath.includes('textures/')) {
+//         // Preserve the textures folder structure
+//         const texturesPath = `textures/${fileName}`;
+//         fileMap[texturesPath] = file;
+//       }
+//     }
+
+//     if (!hasGLTF) {
+//       setError("No scene.gltf file found in the folder");
+//       return;
+//     }
+
+//     setFolderContents(fileMap);
+//     setError(null);
+//   };
+
+//   const handleSubmit = async (e: React.FormEvent) => {
+//     e.preventDefault();
+//     if (Object.keys(folderContents).length === 0 || !coverImage) {
+//       setError("Please select both a model folder and a cover image");
+//       return;
+//     }
+  
+//     try {
+//       setIsUploading(true);
+//       setError(null);
+//       setSuccess(false);
+  
+//       const timestamp = Date.now();
+//       const baseFileName = `${timestamp}-${metadata.name.replace(/\s+/g, '-')}`;
+  
+//       const formData = new FormData();
+      
+//       // Append all files from the folder
+//       Object.entries(folderContents).forEach(([path, file]) => {
+//         formData.append('modelFiles', file, path);
+//       });
+      
+//       formData.append("cover", coverImage);
+//       formData.append("metadata", JSON.stringify(metadata));
+//       formData.append("baseFileName", baseFileName);
+  
+//       const response = await fetch("/api/upload", {
+//         method: "POST",
+//         body: formData,
+//       });
+  
+//       if (!response.ok) {
+//         const errorData = await response.text();
+//         throw new Error(`Upload failed: ${errorData}`);
+//       }
+  
+//       const result = await response.json();
+//       onUploadComplete(result);
+//       setSuccess(true);
+      
+//       // Reset form
+//       setMetadata({ name: "", price: 0, description: "" });
+//       setFolderContents({});
+//       setCoverImage(null);
+//     } catch (err) {
+//       console.error("Upload error:", err);
+//       setError(err instanceof Error ? err.message : "Upload failed");
+//     } finally {
+//       setIsUploading(false);
+//     }
+//   };
+
+//   const isProcessing = isUploading || isRegistering;
+
+//   return (
+//     <div className="max-w-md mx-auto bg-gray-800 p-6 rounded-lg shadow-lg">
+//       <h2 className="text-2xl font-bold mb-6 text-center">Upload New Model</h2>
+      
+//       {success && (
+//         <div className="mb-4 p-4 bg-green-500 text-white rounded-lg text-center">
+//           Model successfully uploaded!
+//         </div>
+//       )}
+
+//       <form onSubmit={handleSubmit} className="space-y-6">
+//         {/* Model Name */}
+//         <div>
+//           <label className="block text-sm font-medium mb-2">Model Name</label>
+//           <input
+//             type="text"
+//             value={metadata.name}
+//             onChange={(e) => setMetadata({ ...metadata, name: e.target.value })}
+//             className="w-full px-4 py-2 bg-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500"
+//             required
+//             placeholder="Enter model name"
+//           />
+//         </div>
+
+//         {/* Price */}
+//         <div>
+//           <label className="block text-sm font-medium mb-2">Price ($)</label>
+//           <input
+//             type="number"
+//             value={metadata.price}
+//             onChange={(e) => setMetadata({ ...metadata, price: Number(e.target.value) })}
+//             className="w-full px-4 py-2 bg-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500"
+//             required
+//             min="0"
+//             step="0.01"
+//             placeholder="Enter price"
+//           />
+//         </div>
+
+//         {/* Description */}
+//         <div>
+//           <label className="block text-sm font-medium mb-2">Description</label>
+//           <textarea
+//             value={metadata.description}
+//             onChange={(e) => setMetadata({ ...metadata, description: e.target.value })}
+//             className="w-full px-4 py-2 bg-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500"
+//             required
+//             rows={4}
+//             placeholder="Enter model description"
+//           />
+//         </div>
+
+//         {/* Model Folder Upload */}
+//         <div>
+//           <label className="block text-sm font-medium mb-2">Model Folder</label>
+//           <input
+//             type="file"
+//             onChange={handleFolderUpload}
+//             webkitdirectory=""
+//             directory=""
+//             multiple
+//             className="w-full px-4 py-2 bg-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500"
+//             required
+//           />
+//           <p className="text-sm text-gray-400 mt-1">
+//             Select a folder containing scene.gltf, .bin files, and textures
+//           </p>
+//         </div>
+
+//         {/* Cover Image Upload */}
+//         <div>
+//           <label className="block text-sm font-medium mb-2">Cover Image</label>
+//           <input
+//             type="file"
+//             onChange={(e) => setCoverImage(e.target.files?.[0] || null)}
+//             accept="image/*"
+//             className="w-full px-4 py-2 bg-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500"
+//             required
+//           />
+//           <p className="text-sm text-gray-400 mt-1">Supported formats: JPG, PNG</p>
+//         </div>
+
+//         {/* Error Message */}
+//         {error && (
+//           <div className="text-red-500 text-sm text-center">
+//             {error}
+//           </div>
+//         )}
+
+//         {/* Submit Button */}
+//         <button
+//           type="submit"
+//           disabled={isProcessing}
+//           className="w-full px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 
+//                    transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+//         >
+//           {isProcessing ? (
+//             <span className="flex items-center justify-center">
+//               <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+//                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+//                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+//               </svg>
+//               Processing...
+//             </span>
+//           ) : (
+//             "Upload Model"
+//           )}
+//         </button>
+//       </form>
+//     </div>
+//   );
+// }
+
+// // "use client";
+
+// // import { useState } from "react";
+// // import { useWallet } from "./WalletProvider";
+// // import { useStoryProtocol } from "../hooks/useStoryProtocol";
+// // import { useIPAssetRegistration } from "../hooks/useIPAssetRegistration";
+
+// // interface UploadButtonProps {
+// //   onUploadComplete: (result: { fileName: string }) => void;
+// //   className?: string;
+// //   label?: string;
+// // }
+
+// // interface ModelMetadata {
+// //   name: string;
+// //   price: number;
+// //   description: string;
+// // }
+
+// // export default function UploadButton({
+// //   onUploadComplete,
+// //   className = "",
+// //   label = "Upload Model",
+// // }: UploadButtonProps) {
+// //   const { isConnected, connect } = useWallet();
+// //   const { isInitialized, error: storyError, reconnect } = useStoryProtocol();
+// //   const { registerIPAsset, isRegistering } = useIPAssetRegistration();
+// //   const [isUploading, setIsUploading] = useState(false);
+// //   const [error, setError] = useState<string | null>(null);
+// //   const [success, setSuccess] = useState<boolean>(false); // Add this state
+// //   const [metadata, setMetadata] = useState<ModelMetadata>({
+// //     name: "",
+// //     price: 0,
+// //     description: "",
+// //   });
+// //   const [modelFile, setModelFile] = useState<File | null>(null);
+// //   const [coverImage, setCoverImage] = useState<File | null>(null);
+
+// //   const handleSubmit = async (e: React.FormEvent) => {
+// //     e.preventDefault();
+// //     if (!modelFile || !coverImage) {
+// //       setError("Please select both a model file and a cover image");
+// //       return;
+// //     }
+  
+// //     try {
+// //       setIsUploading(true);
+// //       setError(null);
+// //       setSuccess(false);
+  
+// //       const timestamp = Date.now();
+// //       const baseFileName = `${timestamp}-${modelFile.name.split(".")[0]}`;
+  
+// //       const formData = new FormData();
+// //       formData.append("model", modelFile);
+// //       formData.append("cover", coverImage);
+// //       formData.append("metadata", JSON.stringify(metadata));
+// //       formData.append("baseFileName", baseFileName);
+  
+// //       const response = await fetch("/api/upload", {
+// //         method: "POST",
+// //         body: formData,
+// //       });
+  
+// //       if (!response.ok) {
+// //         const errorData = await response.text();
+// //         throw new Error(`Upload failed: ${errorData}`);
+// //       }
+  
+// //       const result = await response.json();
+// //       onUploadComplete(result);
+// //       setSuccess(true);
+      
+// //       // Reset form
+// //       setMetadata({ name: "", price: 0, description: "" });
+// //       setModelFile(null);
+// //       setCoverImage(null);
+// //     } catch (err) {
+// //       console.error("Upload error:", err);
+// //       setError(err instanceof Error ? err.message : "Upload failed");
+// //     } finally {
+// //       setIsUploading(false);
+// //     }
+// //   };
+
+// //   const isProcessing = isUploading || isRegistering;
+
+// //   return (
+// //     <div className="max-w-md mx-auto bg-gray-800 p-6 rounded-lg shadow-lg">
+// //       <h2 className="text-2xl font-bold mb-6 text-center">Upload New Model</h2>
+      
+// //       {success && (
+// //         <div className="mb-4 p-4 bg-green-500 text-white rounded-lg text-center">
+// //           Product successfully uploaded!
+// //         </div>
+// //       )}
+// //       <form onSubmit={handleSubmit} className="space-y-6">
+// //         {/* Model Name */}
+// //         <div>
+// //           <label className="block text-sm font-medium mb-2">Model Name</label>
+// //           <input
+// //             type="text"
+// //             value={metadata.name}
+// //             onChange={(e) => setMetadata({ ...metadata, name: e.target.value })}
+// //             className="w-full px-4 py-2 bg-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500"
+// //             required
+// //             placeholder="Enter model name"
+// //           />
+// //         </div>
+
+// //         {/* Price */}
+// //         <div>
+// //           <label className="block text-sm font-medium mb-2">Price ($)</label>
+// //           <input
+// //             type="number"
+// //             value={metadata.price}
+// //             onChange={(e) => setMetadata({ ...metadata, price: Number(e.target.value) })}
+// //             className="w-full px-4 py-2 bg-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500"
+// //             required
+// //             min="0"
+// //             step="0.01"
+// //             placeholder="Enter price"
+// //           />
+// //         </div>
+
+// //         {/* Description */}
+// //         <div>
+// //           <label className="block text-sm font-medium mb-2">Description</label>
+// //           <textarea
+// //             value={metadata.description}
+// //             onChange={(e) => setMetadata({ ...metadata, description: e.target.value })}
+// //             className="w-full px-4 py-2 bg-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500"
+// //             required
+// //             rows={4}
+// //             placeholder="Enter model description"
+// //           />
+// //         </div>
+
+// //         {/* 3D Model File Upload */}
+// //         <div>
+// //           <label className="block text-sm font-medium mb-2">3D Model File</label>
+// //           <input
+// //             type="file"
+// //             onChange={(e) => setModelFile(e.target.files?.[0] || null)}
+// //             accept=".obj,.gltf,.glb"
+// //             className="w-full px-4 py-2 bg-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500"
+// //             required
+// //           />
+// //           <p className="text-sm text-gray-400 mt-1">Supported formats: .obj, .gltf, .glb</p>
+// //         </div>
+
+// //         {/* Cover Image Upload */}
+// //         <div>
+// //           <label className="block text-sm font-medium mb-2">Cover Image</label>
+// //           <input
+// //             type="file"
+// //             onChange={(e) => setCoverImage(e.target.files?.[0] || null)}
+// //             accept="image/*"
+// //             className="w-full px-4 py-2 bg-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500"
+// //             required
+// //           />
+// //           <p className="text-sm text-gray-400 mt-1">Supported formats: JPG, PNG</p>
+// //         </div>
+
+// //         {/* Error Message */}
+// //         {error && (
+// //           <div className="text-red-500 text-sm text-center">
+// //             {error}
+// //           </div>
+// //         )}
+
+// //         {/* Submit Button */}
+// //         <button
+// //           type="submit"
+// //           disabled={isUploading}
+// //           className="w-full px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 
+// //                    transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+// //         >
+// //           {isUploading ? (
+// //             <span className="flex items-center justify-center">
+// //               <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+// //                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+// //                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+// //               </svg>
+// //               Uploading...
+// //             </span>
+// //           ) : (
+// //             "Upload Model"
+// //           )}
+// //         </button>
+// //       </form>
+// //     </div>
+// //   );
+// // }
