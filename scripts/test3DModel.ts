@@ -22,7 +22,7 @@ const client = StoryClient.newClient(config);
 
 // Constants for Story Protocol
 const MERC20_TOKEN = '0xF2104833d386a2734a4eB3B8ad6FC6812F29E38E' as Address;
-const LAP_POLICY = '0x937bef10ba6fb941ed84b8d249abc76031429a9a' as Address;
+const LAP_POLICY = '0xBe54FB168b3c982b7AaE60dB6CF75Bd8447b390E' as Address;
 
 async function testModelRegistration() {
   try {
@@ -67,7 +67,7 @@ async function testModelRegistration() {
           commercialAttribution: true,
           commercializerChecker: '0x0000000000000000000000000000000000000000' as Address,
           commercializerCheckerData: '0x',
-          commercialRevShare: 1000, // 10% revenue share
+          commercialRevShare: 10, // 10% revenue share
           commercialRevCeiling: BigInt(0), // No ceiling
           derivativesAllowed: true,
           derivativesAttribution: true,
@@ -82,7 +82,7 @@ async function testModelRegistration() {
           mintingFee: BigInt('10000000000000000'), // 0.01 MERC20 tokens
           licensingHook: '0x0000000000000000000000000000000000000000' as Address,
           hookData: '0x',
-          commercialRevShare: 1000, // 10% revenue share
+          commercialRevShare: 10, // 10% revenue share
           disabled: false,
           expectMinimumGroupRewardShare: 0,
           expectGroupRewardPool: '0x0000000000000000000000000000000000000000' as Address,
