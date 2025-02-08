@@ -13,23 +13,18 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "StoryForge | IP Blockchain Marketplace",
-  description:
-    "Transform intelligence into Programmable IP assets. Trade IP in a global market for AI training and remixing.",
+  title: "Your App Name",
+  description: "Your app description",
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-black text-white`}
-      >
-        <div className="mx-auto max-w-7xl">{children}</div>
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
