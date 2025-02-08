@@ -4,6 +4,13 @@ A robust platform for uploading, managing, and collaborating on 3D models, built
 
 ## Core Features
 
+### Story Protocol Integration
+- Automated IP registration
+- Rights management
+- Licensing tracking
+- Ownership verification
+- Smart contract integration
+
 ### Upload Capabilities
 - Large file uploads with intelligent chunking (up to 500MB per file)
 - Real-time upload progress tracking with detailed statistics
@@ -24,13 +31,6 @@ A robust platform for uploading, managing, and collaborating on 3D models, built
 - Advanced search and filtering
 - Tagging and categorization
 - Batch operations support
-
-### Story Protocol Integration
-- Automated IP registration
-- Rights management
-- Licensing tracking
-- Ownership verification
-- Smart contract integration
 
 ## Technical Setup
 
