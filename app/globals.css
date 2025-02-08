@@ -3,20 +3,15 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
+  --background: #ffffff; /* Changed to white */
   --foreground: #171717;
   --font-family: 'Inter', sans-serif; /* Modern font */
-  --foreground-rgb: 0, 0, 0;
-  --background-rgb: 255, 255, 255;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
-    --header-bg: #ffffff;    /* Keep header white in dark mode */
-    --header-text: #000000;  /* Keep header text black in dark mode */
-    --content-bg: #171717;   /* Dark content background in dark mode */
   }
 }
 
@@ -25,8 +20,6 @@ body {
   background: var(--background);
   font-family: var(--font-family); /* Use modern font */
   border-radius: 8px; /* Round corners */
-  color: rgb(var(--foreground-rgb));
-  background: rgb(var(--background-rgb));
 }
 
 .transform {
@@ -36,3 +29,4 @@ transition: transform 0.5s;
 .hover\:scale-105:hover {
   transform: scale(1.05);
 }
+

@@ -19,8 +19,41 @@ const config: StoryConfig = {
 
 const client = StoryClient.newClient(config);
 
-// WIP token address on Story Protocol
-const WIP_TOKEN = '0x1514000000000000000000000000000000000000' as Address;
+/**
+ * Pay royalties for using an IP Asset
+ * This should be called when:
+ * 1. Someone purchases a license to use the 3D model
+ * 2. Someone makes a derivative and pays the initial fee
+ * 3. Revenue is generated from the use of the 3D model
+ */
+async function payRoyalties(params: {
+  ipAssetId: Address,
+  amount: bigint,
+  currency: Address,
+  description: string
+}) {
+  try {
+    console.log(`Paying royalties for IP Asset ${params.ipAssetId}...`);
+    console.log(`Amount: ${params.amount} ${params.currency}`);
+    console.log(`Description: ${params.description}`);
+
+    // Pay royalties to the IP Asset's vault
+    const response = await client.ipAsset.payRoyaltyOnBehalf({
+      ipId: params.ipAssetId,
+      amount: params.amount,
+      currency: params.currency,
+      txOptions: { waitForTransaction: true },
+    });
+
+    console.log("\nRoyalty payment successful!");
+    console.log("Transaction Hash:", response.txHash);
+    
+    return response;
+  } catch (error) {
+    console.error("Error paying royalties:", error);
+    throw error;
+  }
+}
 
 /**
  * Claim revenue from an IP Asset's vault
@@ -33,37 +66,36 @@ async function claimRevenue(params: {
   currency: Address
 }) {
   try {
-    console.log(`Checking claimable amount for IP Asset ${params.ipAssetId}...`);
-    
-    // First check how much is claimable
-    const claimableAmount = await client.royalty.claimableRevenue({
-      royaltyVaultIpId: params.ipAssetId,
-      claimer: account.address,
-      token: params.currency
+    console.log(`Claiming revenue for IP Asset ${params.ipAssetId}...`);
+
+    // Get the vault address for this IP Asset
+    const vault = await client.ipAsset.getVault(params.ipAssetId);
+    console.log("IP Asset Vault:", vault);
+
+    // Get claimable amount
+    const claimable = await client.ipAsset.getClaimableRevenue({
+      ipId: params.ipAssetId,
+      currency: params.currency,
     });
+    console.log(`Claimable amount: ${claimable}`);
 
-    console.log(`Claimable amount: ${claimableAmount.toString()} ${params.currency}`);
+    if (claimable > BigInt(0)) {
+      // Claim the revenue
+      const response = await client.ipAsset.claimRevenue({
+        ipId: params.ipAssetId,
+        currency: params.currency,
+        txOptions: { waitForTransaction: true },
+      });
 
-    if (claimableAmount <= 0n) {
-      console.log('No revenue to claim.');
-      return;
+      console.log("\nRevenue claim successful!");
+      console.log("Transaction Hash:", response.txHash);
+      return response;
+    } else {
+      console.log("No revenue to claim");
+      return null;
     }
-
-    // Claim the revenue
-    console.log('\nClaiming revenue...');
-    const response = await client.royalty.claimAllRevenue({
-      ancestorIpId: params.ipAssetId,
-      claimer: account.address,
-      childIpIds: [], // No child IPs in this case
-      royaltyPolicies: [], // No specific policies
-      currencyTokens: [params.currency]
-    });
-
-    console.log('\nRevenue claimed successfully!');
-    console.log('Transaction Hashes:', response.txHashes);
-    return response;
   } catch (error) {
-    console.error('Error claiming revenue:', error);
+    console.error("Error claiming revenue:", error);
     throw error;
   }
 }
@@ -74,87 +106,50 @@ async function claimRevenue(params: {
  */
 async function getRevenueHistory(ipAssetId: Address) {
   try {
-    console.log(`Getting revenue information for IP Asset ${ipAssetId}...`);
-    
-    // Get claimable revenue
-    const claimableAmount = await client.royalty.claimableRevenue({
-      royaltyVaultIpId: ipAssetId,
-      claimer: account.address,
-      token: WIP_TOKEN
-    });
-    
-    console.log('\nClaimable Revenue:', claimableAmount.toString(), 'WIP tokens');
-    
-    return {
-      claimableAmount
-    };
+    console.log(`Getting revenue history for IP Asset ${ipAssetId}...`);
+
+    // Get the vault address
+    const vault = await client.ipAsset.getVault(ipAssetId);
+    console.log("IP Asset Vault:", vault);
+
+    // Get all revenue events (this would need to be implemented using blockchain events)
+    // For now we can use the Story Protocol Explorer to view the history
+    console.log(`View revenue history at: https://explorer.story.foundation/ipa/${ipAssetId}`);
   } catch (error) {
-    console.error('Error getting revenue history:', error);
+    console.error("Error getting revenue history:", error);
     throw error;
   }
 }
 
-// Parse command line arguments
-function parseArgs() {
-  const args = process.argv.slice(2);
-  const usage = `
-Usage: 
-  Check claimable revenue: npx ts-node scripts/handleRevenue.ts check <ipId>
-  Claim revenue: npx ts-node scripts/handleRevenue.ts claim <ipId>
-  View history: npx ts-node scripts/handleRevenue.ts history <ipId>
-
-Arguments:
-  action    The action to perform (check, claim, or history)
-  ipId      The ID of the IP asset
-
-Example:
-  npx ts-node scripts/handleRevenue.ts check 0x1234...5678
-  npx ts-node scripts/handleRevenue.ts claim 0x1234...5678
-  npx ts-node scripts/handleRevenue.ts history 0x1234...5678
-`;
-
-  if (args.length !== 2 || args.includes('--help')) {
-    console.log(usage);
-    process.exit(1);
+// Example usage:
+async function main() {
+  if (!process.env.PARENT_IP_ASSET_ID || !process.env.CHILD_IP_ASSET_ID) {
+    throw new Error("IP Asset IDs not found in .env file");
   }
 
-  const [action, ipId] = args;
-  
-  if (!['check', 'claim', 'history'].includes(action)) {
-    console.error('Error: action must be either "check", "claim", or "history"');
-    console.log(usage);
-    process.exit(1);
-  }
+  // Example: Pay royalties when someone uses the child model
+  await payRoyalties({
+    ipAssetId: process.env.CHILD_IP_ASSET_ID as Address,
+    amount: BigInt('1000000000000000000'), // 1 token
+    currency: '0x1514000000000000000000000000000000000000' as Address, // WIP token
+    description: "Usage fee for 3D model",
+  });
 
-  return {
-    action,
-    ipId: ipId as Address
-  };
+  // The payment will automatically be distributed:
+  // 1. Parent model gets its share (e.g., 5%)
+  // 2. Child model gets the rest (95%)
+
+  // Example: Claim revenue as the child model owner
+  await claimRevenue({
+    ipAssetId: process.env.CHILD_IP_ASSET_ID as Address,
+    currency: '0x1514000000000000000000000000000000000000' as Address, // WIP token
+  });
+
+  // Example: View revenue history
+  await getRevenueHistory(process.env.CHILD_IP_ASSET_ID as Address);
 }
 
-// Run if called directly
+// Only run if called directly
 if (require.main === module) {
-  const { action, ipId } = parseArgs();
-  
-  if (action === 'check') {
-    // Just check claimable amount
-    client.royalty.claimableRevenue({
-      royaltyVaultIpId: ipId,
-      claimer: ipId,
-      token: WIP_TOKEN
-    }).then((claimableAmount) => {
-      console.log('Claimable amount:', claimableAmount.toString(), 'WIP tokens');
-    }).catch(console.error);
-  } else if (action === 'claim') {
-    // Claim revenue
-    claimRevenue({
-      ipAssetId: ipId,
-      currency: WIP_TOKEN,
-    }).catch(console.error);
-  } else {
-    // Get revenue history
-    getRevenueHistory(ipId).catch(console.error);
-  }
+  main().catch(console.error);
 }
-
-export { claimRevenue, getRevenueHistory };

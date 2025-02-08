@@ -1,26 +1,12 @@
-import { withClerkMiddleware } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { clerkMiddleware } from "@clerk/nextjs/server";
 
-// This example protects all routes including api/trpc routes
-// Please edit this to allow other routes to be public as needed.
-// See https://clerk.com/docs/references/nextjs/auth-middleware for more information about configuring your middleware
-export default withClerkMiddleware((req: NextRequest) => {
-  return NextResponse.next();
-});
+export default clerkMiddleware();
 
 export const config = {
-  // Protects all routes, including api/trpc
-  // See https://clerk.com/docs/references/nextjs/auth-middleware for more information about configuring your matcher
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next
-     * - static (static files)
-     * - favicon.ico (favicon file)
-     * - public folder
-     */
-    "/((?!static|.*\\..*|_next|favicon.ico).*)",
-    "/"
+    // Skip Next.js internals and all static files
+    "/((?!_next/static|_next/image|favicon.ico).*)",
+    // Always run for API routes
+    "/api/(.*)",
   ],
 };

@@ -32,18 +32,18 @@ async function mintLicense(params: {
     console.log('Minting license for IP Asset:', params.ipId);
     console.log('License Type:', params.licenseType);
 
-    // Get the appropriate license terms ID based on the type
-    const licenseTermsId = params.licenseType === LicenseType.REVENUE_SHARE ? 114n : 113n;
-    console.log('\nMinting license with term ID:', licenseTermsId.toString());
+    // Choose term ID based on license type (111 for upfront, 112 for revenue share)
+    const termId = params.licenseType === LicenseType.UPFRONT_ONLY ? "111" : "112";
 
     // Mint the license token
+    console.log('\nMinting license with term ID:', termId);
     const response = await client.license.mintLicenseTokens({
-      licenseTermsId: licenseTermsId.toString(),
+      licenseTermsId: termId,
       licensorIpId: params.ipId as Address,
       receiver: account.address,
       amount: 1,
-      maxMintingFee: BigInt(0), // 10 WIP tokens as max fee
-      maxRevenueShare: 100, // 30% as max revenue share
+      maxMintingFee: BigInt('10000000000000000000'), // 10 WIP tokens as max fee
+      maxRevenueShare: 30, // 30% as max revenue share
       txOptions: { waitForTransaction: true }
     });
 
