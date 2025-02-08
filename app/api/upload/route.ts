@@ -1,48 +1,36 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/app/lib/supabase/config";
+import { writeFile } from "fs/promises";
+import { join } from "path";
 
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
     const file = formData.get("file") as File;
-    const fileName = formData.get("fileName") as string;
-    const partNumber = parseInt(formData.get("partNumber") as string);
-    const totalChunks = parseInt(formData.get("totalChunks") as string);
 
-    if (!file || !fileName) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 });
+    if (!file) {
+      return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
     }
 
-    // Convert file to buffer
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const chunkName = `${Date.now()}-${fileName}.part${partNumber}`;
+    // Create unique filename
+    const timestamp = Date.now();
+    const filename = `${timestamp}-${file.name}`;
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
 
-    // Upload chunk to Supabase
-    const { data, error } = await supabase.storage
-      .from("3d_files")
-      .upload(chunkName, buffer, {
-        contentType: file.type,
-        upsert: false,
-      });
+    // Save to public/uploads
+    const path = join(process.cwd(), "public/uploads", filename);
+    await writeFile(path, buffer);
 
-    if (error) {
-      console.error("Supabase upload error:", error);
-      return NextResponse.json(
-        { error: error.message },
-        { status: error.statusCode || 500 }
-      );
-    }
+    // Return the public URL
+    const url = `/uploads/${filename}`;
 
     return NextResponse.json({
-      chunkId: data.path,
-      partNumber,
+      url,
+      fileName: file.name,
     });
   } catch (error) {
-    console.error("Error handling chunk upload:", error);
-    return NextResponse.json(
-      { error: "Failed to process chunk upload" },
-      { status: 500 }
-    );
+    console.error("Upload error:", error);
+    return NextResponse.json({ error: "Upload failed" }, { status: 500 });
   }
 }
 

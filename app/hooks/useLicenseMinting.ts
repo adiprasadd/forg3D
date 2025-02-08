@@ -1,56 +1,48 @@
+"use client";
+
 import { useState } from "react";
 import { useStoryProtocol } from "./useStoryProtocol";
 
-export function useLicenseMinting() {
-  const { client } = useStoryProtocol();
-  const [isMinting, setIsMinting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+interface MintLicenseParams {
+  ipId: string;
+  terms: {
+    commercial: boolean;
+    territory: string;
+    duration: string;
+  };
+}
 
-  const mintLicense = async (params: {
-    modelId: string;
-    licenseTermsId: string;
-    receiver: string;
-  }) => {
-    if (!client) {
-      setError("Story Protocol client not initialized");
-      return;
+export function useLicenseMinting() {
+  const { client, isInitialized } = useStoryProtocol();
+  const [isMinting, setIsMinting] = useState(false);
+
+  const mintLicense = async ({ ipId, terms }: MintLicenseParams) => {
+    if (!client || !isInitialized) {
+      throw new Error("Story Protocol client not initialized");
     }
 
     try {
       setIsMinting(true);
-      setError(null);
 
-      const response = await fetch(
-        `/api/models/${params.modelId}/mint-license`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            licenseTermsId: params.licenseTermsId,
-            receiver: params.receiver,
-            amount: 1,
-          }),
-        }
-      );
+      const tx = await client.licensing.mintLicense({
+        ipId,
+        terms: {
+          commercial: terms.commercial,
+          territory: terms.territory,
+          duration: terms.duration,
+          // Add other terms as needed
+        },
+      });
 
-      if (!response.ok) {
-        throw new Error("Failed to mint license");
-      }
-
-      const data = await response.json();
-      return data;
-    } catch (err) {
-      console.error("Error minting license:", err);
-      setError(err instanceof Error ? err.message : "Failed to mint license");
-      throw err;
+      const receipt = await tx.wait();
+      return receipt.licenseId;
+    } catch (error) {
+      console.error("License minting error:", error);
+      throw error;
     } finally {
       setIsMinting(false);
     }
   };
 
-  return {
-    mintLicense,
-    isMinting,
-    error,
-  };
+  return { mintLicense, isMinting };
 }
