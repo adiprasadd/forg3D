@@ -21,31 +21,31 @@ const config: StoryConfig = {
 const client = StoryClient.newClient(config);
 
 // Constants for Story Protocol
-const MERC20_TOKEN = '0xF2104833d386a2734a4eB3B8ad6FC6812F29E38E' as Address;
+const WIP_TOKEN = '0x1514000000000000000000000000000000000000' as Address;
 const LAP_POLICY = '0x937bef10ba6fb941ed84b8d249abc76031429a9a' as Address;
 
-async function testModelRegistration() {
+async function createParentModel() {
   try {
-    // Mock metadata for a 3D model
+    // Mock metadata for parent 3D model
     const mockIpMetadata = {
-      title: "Premium 3D Model",
-      description: "A high-quality 3D model with commercial licensing",
+      title: "Base 3D Character Model",
+      description: "A base 3D character model that can be used as a foundation for derivatives",
       watermarkImg: "https://placehold.co/600x400",
       attributes: [
-        { key: "Category", value: "Premium" },
+        { key: "Category", value: "Base Model" },
         { key: "Format", value: "GLB" },
-        { key: "Commercial", value: "Yes" },
+        { key: "Type", value: "Character" },
       ],
     };
 
     const mockNftMetadata = {
-      name: "Premium 3D Model",
-      description: "A high-quality 3D model with commercial licensing",
+      name: "Base 3D Character Model",
+      description: "A base 3D character model that can be used as a foundation for derivatives",
       image: "https://placehold.co/600x400",
       attributes: {
-        category: "Premium",
+        category: "Base Model",
         format: "GLB",
-        commercial: "Yes",
+        type: "Character",
       },
     };
 
@@ -53,36 +53,36 @@ async function testModelRegistration() {
     const ipHash = createHash('sha256').update(JSON.stringify(mockIpMetadata)).digest('hex');
     const nftHash = createHash('sha256').update(JSON.stringify(mockNftMetadata)).digest('hex');
 
-    console.log("Registering 3D model with commercial license terms...");
+    console.log("Registering parent 3D model...");
     
     const response = await client.ipAsset.mintAndRegisterIpAssetWithPilTerms({
       spgNftContract: process.env.SPG_NFT_CONTRACT_ADDRESS as Address,
       licenseTermsData: [{
         terms: {
           transferable: true,
-          royaltyPolicy: LAP_POLICY,
-          defaultMintingFee: BigInt('10000000000000000'), // 0.01 MERC20 tokens
-          expiration: BigInt(0), // No expiration
-          commercialUse: true,
-          commercialAttribution: true,
+          royaltyPolicy: '0x0000000000000000000000000000000000000000' as Address,
+          defaultMintingFee: BigInt(0),
+          expiration: BigInt(0),
+          commercialUse: false,
+          commercialAttribution: false,
           commercializerChecker: '0x0000000000000000000000000000000000000000' as Address,
           commercializerCheckerData: '0x',
-          commercialRevShare: 1000, // 10% revenue share
-          commercialRevCeiling: BigInt(0), // No ceiling
+          commercialRevShare: 0,
+          commercialRevCeiling: BigInt(0),
           derivativesAllowed: true,
           derivativesAttribution: true,
           derivativesApproval: false,
           derivativesReciprocal: true,
           derivativeRevCeiling: BigInt(0),
-          currency: MERC20_TOKEN, // Use MERC20 token for payments
+          currency: '0x0000000000000000000000000000000000000000' as Address,
           uri: '',
         },
         licensingConfig: {
-          isSet: true,
-          mintingFee: BigInt('10000000000000000'), // 0.01 MERC20 tokens
+          isSet: false,
+          mintingFee: BigInt(0),
           licensingHook: '0x0000000000000000000000000000000000000000' as Address,
           hookData: '0x',
-          commercialRevShare: 1000, // 10% revenue share
+          commercialRevShare: 0,
           disabled: false,
           expectMinimumGroupRewardShare: 0,
           expectGroupRewardPool: '0x0000000000000000000000000000000000000000' as Address,
@@ -98,20 +98,24 @@ async function testModelRegistration() {
       txOptions: { waitForTransaction: true },
     });
 
-    console.log("\nRegistration successful!");
+    console.log("\nParent Model Registration successful!");
     console.log("IP Asset ID:", response.ipId);
     console.log("Transaction Hash:", response.txHash);
     console.log("Explorer URL:", `https://explorer.story.foundation/ipa/${response.ipId}`);
     console.log("\nRoyalty Information:");
     console.log("- Your IP Asset has 100M Royalty Tokens");
-    console.log("- Revenue Token: MERC20 (", MERC20_TOKEN, ")");
-    console.log("- Commercial Use: Enabled with 10% revenue share");
-    console.log("- Minting Fee: 0.01 MERC20 tokens");
+    console.log("- Revenue Token: WIP (", WIP_TOKEN, ")");
+    console.log("- Derivatives must share 5% of their revenue");
+    console.log("- Minting Fee: 0.01 WIP tokens");
+
+    // Save the IP Asset ID for the child model to use
+    console.log("\nAdd this to your .env file:");
+    console.log(`PARENT_IP_ASSET_ID=${response.ipId}`);
     
   } catch (error) {
-    console.error("Error registering 3D model:", error);
+    console.error("Error registering parent model:", error);
   }
 }
 
-// Run the test
-testModelRegistration();
+// Run the script
+createParentModel();
