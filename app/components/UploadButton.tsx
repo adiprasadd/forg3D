@@ -1,17 +1,30 @@
 "use client";
 
 import { useState } from "react";
-import {
-  ALLOWED_FILE_TYPES,
-  MAX_FILE_SIZE,
-  MAX_CHUNK_SIZE,
-} from "@/app/lib/supabase/config";
 
 interface UploadButtonProps {
-  onUploadComplete?: (result: { url: string; key: string }) => void;
+  onUploadComplete?: (result: { url: string; fileName: string }) => void;
   className?: string;
   label?: string;
 }
+
+const ALLOWED_FILE_TYPES = [
+  ".obj",
+  ".mtl",
+  ".gltf",
+  ".usdz",
+  ".glb",
+  ".fbx",
+  ".blend",
+  ".jpg",
+  ".jpeg",
+  ".png",
+  ".tga",
+  ".exr",
+  ".tif",
+  ".bmp",
+  ".hdr",
+];
 
 export default function UploadButton({
   onUploadComplete,
@@ -19,46 +32,12 @@ export default function UploadButton({
   label = "Upload",
 }: UploadButtonProps) {
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
-
-  const uploadChunk = async (
-    chunk: Blob,
-    fileName: string,
-    partNumber: number,
-    totalChunks: number
-  ) => {
-    const formData = new FormData();
-    formData.append("file", chunk);
-    formData.append("fileName", fileName);
-    formData.append("partNumber", partNumber.toString());
-    formData.append("totalChunks", totalChunks.toString());
-
-    const response = await fetch("/api/upload", {
-      method: "POST",
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Chunk upload failed");
-    }
-
-    return response.json();
-  };
 
   const handleUpload = async (file: File) => {
     try {
       setIsUploading(true);
       setError(null);
-      setUploadProgress(0);
-
-      // Validate file size
-      if (file.size > MAX_FILE_SIZE) {
-        throw new Error(
-          `File too large (max ${MAX_FILE_SIZE / (1024 * 1024)}MB)`
-        );
-      }
 
       // Validate file type
       const fileExt = `.${file.name.split(".").pop()?.toLowerCase()}`;
@@ -66,42 +45,22 @@ export default function UploadButton({
         throw new Error(`File type ${fileExt} not supported`);
       }
 
-      // Split file into chunks
-      const chunks: Blob[] = [];
-      let offset = 0;
-      while (offset < file.size) {
-        chunks.push(file.slice(offset, offset + MAX_CHUNK_SIZE));
-        offset += MAX_CHUNK_SIZE;
-      }
+      // Create FormData
+      const formData = new FormData();
+      formData.append("file", file);
 
-      // Upload chunks
-      const uploadPromises = chunks.map((chunk, index) =>
-        uploadChunk(chunk, file.name, index + 1, chunks.length)
-      );
-
-      // Track progress
-      let completedChunks = 0;
-      await Promise.all(
-        uploadPromises.map(async (promise) => {
-          await promise;
-          completedChunks++;
-          setUploadProgress((completedChunks / chunks.length) * 100);
-        })
-      );
-
-      // Get final URL
-      const finalResponse = await fetch("/api/upload/complete", {
+      // Upload to local API endpoint
+      const response = await fetch("/api/upload/local", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          fileName: file.name,
-          totalChunks: chunks.length,
-        }),
+        body: formData,
       });
 
-      const result = await finalResponse.json();
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Upload failed");
+      }
+
+      const result = await response.json();
       onUploadComplete?.(result);
     } catch (err) {
       console.error("Error uploading:", err);
@@ -129,7 +88,7 @@ export default function UploadButton({
             isUploading ? "opacity-50" : "hover:bg-blue-600"
           } transition-colors`}
       >
-        {isUploading ? `Uploading ${uploadProgress.toFixed(1)}%` : label}
+        {isUploading ? "Uploading..." : label}
       </span>
       {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
     </label>

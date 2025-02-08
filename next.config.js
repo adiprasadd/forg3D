@@ -15,7 +15,7 @@ const nextConfig = {
     return config;
   },
   images: {
-    domains: ["img.clerk.com"],
+    domains: ["img.clerk.com", "res.cloudinary.com"],
   },
 };
 
