@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useStoryProtocol } from "../hooks/useStoryProtocol";
+import UploadButton from "./UploadButton";
 
 export default function Navigation() {
-  const { error} =
-    useStoryProtocol();
+  const { error } = useStoryProtocol();
 
   return (
     <nav className="py-4 px-6 border-b border-gray-700">
@@ -13,13 +13,35 @@ export default function Navigation() {
         <Link href="/" className="text-2xl font-bold text-blue-400">
           StoryForge
         </Link>
-        <div className="space-x-6">
-          <Link href="/models" className="hover:text-blue-400 transition">Models</Link>
-          <Link href="/materials" className="hover:text-blue-400 transition">Materials</Link>
-          <Link href="/scenes" className="hover:text-blue-400 transition">Scenes</Link>
-          <Link href="/creators" className="hover:text-blue-400 transition">Creators</Link>
-          <Link href="/login" className="hover:text-blue-400 transition">Login</Link>
-          <Link href="/register" className="hover:text-blue-400 transition">Register</Link>
+        <div className="flex items-center space-x-6">
+          <Link href="/models" className="hover:text-blue-400 transition">
+            Models
+          </Link>
+          <Link href="/materials" className="hover:text-blue-400 transition">
+            Materials
+          </Link>
+          <Link href="/scenes" className="hover:text-blue-400 transition">
+            Scenes
+          </Link>
+          <Link href="/creators" className="hover:text-blue-400 transition">
+            Creators
+          </Link>
+          <UploadButton
+            onUploadComplete={(result) => {
+              console.log("Upload complete:", result);
+              // Redirect to create page with the uploaded file info
+              window.location.href = `/create?fileUrl=${encodeURIComponent(
+                result.url
+              )}&fileId=${result.publicId}`;
+            }}
+            label="Upload Model"
+          />
+          <Link href="/login" className="hover:text-blue-400 transition">
+            Login
+          </Link>
+          <Link href="/register" className="hover:text-blue-400 transition">
+            Register
+          </Link>
         </div>
         {/* <div className="space-x-6">
           <Link href="/marketplace" className="hover:text-blue-400 transition">
