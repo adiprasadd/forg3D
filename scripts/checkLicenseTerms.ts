@@ -23,15 +23,12 @@ async function checkLicenseTerms(ipId: string) {
   try {
     console.log('Checking license terms for IP Asset:', ipId);
 
-    // Get license terms for term ID 0 and 1
-    const termIds = ["0", "1"];
+    // Get license terms for our registered terms (111 and 112)
+    const termIds = [111n, 112n];
     for (const termId of termIds) {
       try {
         console.log(`\nChecking term ID ${termId}...`);
-        const { terms } = await client.license.getLicenseTerms({
-          licenseTermsId: termId,
-          licensorIpId: ipId as Address
-        });
+        const { terms } = await client.license.getLicenseTerms(termId);
 
         console.log('Term Details:');
         console.log('Minting Fee:', terms.defaultMintingFee.toString(), 'wei');
