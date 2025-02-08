@@ -50,7 +50,7 @@ export default function Navigation() {
             </SignInButton>
           </SignedOut>
           <SignedIn>
-            <UserButton afterSignOutUrl="/" />
+            <UserButton/>
           </SignedIn>
         </div>
       </div>

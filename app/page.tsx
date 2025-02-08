@@ -1,4 +1,3 @@
-
 import Navigation from "./components/Navigation";
 import HeroSection from "./components/HeroSection";
 import MiddleSections from "./components/MiddleSections";
@@ -16,4 +15,4 @@ export default function Home() {
     </main>
   );
 }
-
+   
