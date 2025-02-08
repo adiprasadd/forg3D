@@ -1,36 +1,112 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 3D Model Upload Platform
 
-## Getting Started
+A platform for uploading and managing 3D models using Next.js, Supabase Storage, and Story Protocol.
 
-First, run the development server:
+## Features
+
+- Large file uploads with chunking (up to 500MB)
+- Real-time upload progress tracking
+- File type validation
+- Secure storage with Supabase
+- Integration with Story Protocol
+
+## Setup
+
+1. Install dependencies:
+
+```bash
+npm install
+```
+
+2. Configure environment variables:
+
+- Copy `.env.example` to `.env.local`
+- Fill in the required environment variables:
+  - Story Protocol configuration
+  - Supabase configuration
+
+3. Set up Supabase Storage:
+
+- Create a new Supabase project
+- Create a storage bucket named '3d_files'
+- Add the following storage policy:
+  ```sql
+  bucket_id = '3d_files'
+  ```
+- Configure CORS for your domain
+
+4. Run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Supported File Types
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 3D Models
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- .obj
+- .mtl
+- .gltf
+- .usdz
+- .glb
+- .fbx
+- .blend
 
-## Learn More
+### Images & Textures
 
-To learn more about Next.js, take a look at the following resources:
+- .jpg, .jpeg, .png
+- .tga, .exr, .tif, .bmp
+- .hdr (lighting)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## File Size Limits
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Maximum file size: 500MB
+- Chunk size: 5MB
 
-## Deploy on Vercel
+## Development
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+# Start development server
+npm run dev
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+# Build for production
+npm run build
+
+# Start production server
+npm run start
+
+# Run linting
+npm run lint
+```
+
+## Environment Variables
+
+Required environment variables:
+
+### Story Protocol
+
+- `NEXT_PUBLIC_RPC_PROVIDER_URL`
+- `NEXT_PUBLIC_STORY_CHAIN_ID`
+- `NEXT_PUBLIC_NFT_CONTRACT_ADDRESS`
+- `STORY_API_KEY`
+- `STORY_RPC_URL`
+
+### Supabase
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+
+See `.env.example` for all required variables and setup instructions.
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.

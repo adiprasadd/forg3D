@@ -32,7 +32,7 @@ export default function Navigation() {
               // Redirect to create page with the uploaded file info
               window.location.href = `/create?fileUrl=${encodeURIComponent(
                 result.url
-              )}&fileId=${result.publicId}`;
+              )}&fileId=${result.key}`;
             }}
             label="Upload Model"
           />

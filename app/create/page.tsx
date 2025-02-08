@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Navigation from "../components/Navigation";
-import UploadButton from "../components/UploadButton";
+import UploadButton from "@/app/components/UploadButton";
 
 interface ModelForm {
   name: string;
@@ -71,13 +70,13 @@ export default function CreatePage() {
 
   return (
     <main>
-      <Navigation />
-      <div className="px-6 py-16">
-        <div className="max-w-3xl mx-auto">
-          <h1 className="text-4xl font-bold mb-8">Create New Model</h1>
-          <form onSubmit={handleSubmit} className="space-y-8">
-            <div className="bg-gray-800/50 rounded-xl p-8">
-              <label className="block text-sm font-medium mb-4">
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-2xl mx-auto">
+          <h1 className="text-3xl font-bold mb-8">Create New Model</h1>
+
+          <div className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium mb-2">
                 Upload Model
               </label>
               <UploadButton
@@ -85,72 +84,25 @@ export default function CreatePage() {
                   setUploadedFile(result);
                   setError(null);
                 }}
-                label="Choose File to Upload"
-                className="w-full"
+                label="Choose 3D Model"
               />
-              {uploadedFile && (
-                <div className="mt-4 p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
-                  <p className="text-green-400 font-medium">
-                    File uploaded successfully!
-                  </p>
-                  <p className="text-sm text-gray-400 break-all mt-1">
-                    {uploadedFile.url.split("/").pop()}
-                  </p>
-                </div>
-              )}
             </div>
 
-            <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Model Name
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Enter model name"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Description
-                </label>
-                <textarea
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  rows={4}
-                  placeholder="Describe your model"
-                />
-              </div>
-
-              {error && (
-                <p className="text-sm text-red-500 bg-red-500/10 border border-red-500/20 rounded-lg p-3">
-                  {error}
+            {uploadedFile && (
+              <div className="mt-4">
+                <p className="text-green-500">
+                  File uploaded successfully:{" "}
+                  {uploadedFile.url.split("/").pop()}
                 </p>
-              )}
+              </div>
+            )}
 
-              <button
-                type="submit"
-                disabled={isSubmitting || !uploadedFile}
-                className={`w-full px-6 py-3 bg-blue-500 rounded-lg transition font-medium
-                  ${
-                    isSubmitting || !uploadedFile
-                      ? "opacity-50 cursor-not-allowed"
-                      : "hover:bg-blue-600"
-                  }`}
-              >
-                {isSubmitting ? "Creating..." : "Create Model"}
-              </button>
-            </div>
-          </form>
+            {error && (
+              <div className="mt-4">
+                <p className="text-red-500">{error}</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </main>
