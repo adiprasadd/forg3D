@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useStoryProtocol } from "../hooks/useStoryProtocol";
+import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 
 export default function Navigation() {
   const { error} =
@@ -18,8 +19,12 @@ export default function Navigation() {
           <Link href="/materials" className="hover:text-blue-400 transition">Materials</Link>
           <Link href="/scenes" className="hover:text-blue-400 transition">Scenes</Link>
           <Link href="/creators" className="hover:text-blue-400 transition">Creators</Link>
-          <Link href="/login" className="hover:text-blue-400 transition">Login</Link>
-          <Link href="/register" className="hover:text-blue-400 transition">Register</Link>
+          <SignedOut>
+            <SignInButton />
+          </SignedOut>
+          <SignedIn>
+            <UserButton />
+          </SignedIn>
         </div>
         {/* <div className="space-x-6">
           <Link href="/marketplace" className="hover:text-blue-400 transition">
