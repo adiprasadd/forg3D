@@ -1,12 +1,10 @@
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
-import Footer from "./components/Footer";
-import Navigation from "./components/Navigation";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Your App Name",
-  description: "Your app description",
+  title: "Story Protocol Demo",
+  description: "A demo application using Story Protocol",
 };
 
 export default function RootLayout({
@@ -18,9 +16,7 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en">
         <body>
-          <Navigation />
           {children}
-          <Footer />
         </body>
       </html>
     </ClerkProvider>

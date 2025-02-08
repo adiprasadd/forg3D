@@ -6,6 +6,8 @@
   --background: #ffffff; /* Changed to white */
   --foreground: #171717;
   --font-family: 'Inter', sans-serif; /* Modern font */
+  --foreground-rgb: 0, 0, 0;
+  --background-rgb: 255, 255, 255;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -20,6 +22,8 @@ body {
   background: var(--background);
   font-family: var(--font-family); /* Use modern font */
   border-radius: 8px; /* Round corners */
+  color: rgb(var(--foreground-rgb));
+  background: rgb(var(--background-rgb));
 }
 
 .transform {
@@ -29,4 +33,3 @@ transition: transform 0.5s;
 .hover\:scale-105:hover {
   transform: scale(1.05);
 }
-

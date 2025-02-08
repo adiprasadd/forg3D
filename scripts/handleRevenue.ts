@@ -140,7 +140,7 @@ if (require.main === module) {
     // Just check claimable amount
     client.royalty.claimableRevenue({
       royaltyVaultIpId: ipId,
-      claimer: account.address,
+      claimer: ipId,
       token: WIP_TOKEN
     }).then((claimableAmount) => {
       console.log('Claimable amount:', claimableAmount.toString(), 'WIP tokens');

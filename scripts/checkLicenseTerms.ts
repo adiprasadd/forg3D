@@ -21,22 +21,24 @@ const client = StoryClient.newClient(config);
 
 async function checkLicenseTerms(ipId: string) {
   try {
-    console.log('Checking license terms for IP Asset:', ipId);
+    console.log(`Checking license terms for IP Asset: ${ipId}\n`);
 
-    // Get license terms for our registered terms (111 and 112)
-    const termIds = [111n, 112n];
+    // Check both our known term IDs (113 and 114)
+    const termIds = [113n, 114n];
+    
     for (const termId of termIds) {
       try {
-        console.log(`\nChecking term ID ${termId}...`);
+        console.log(`Checking term ID ${termId}...`);
         const { terms } = await client.license.getLicenseTerms(termId);
 
         console.log('Term Details:');
         console.log('Minting Fee:', terms.defaultMintingFee.toString(), 'wei');
-        console.log('Revenue Share:', terms.commercialRevShare, 'basis points');
         console.log('Commercial Use:', terms.commercialUse ? 'Yes' : 'No');
         console.log('Derivatives Allowed:', terms.derivativesAllowed ? 'Yes' : 'No');
         console.log('Transferable:', terms.transferable ? 'Yes' : 'No');
+        console.log('Commercial Rev Share:', terms.commercialRevShare, 'basis points');
         console.log('URI:', terms.uri);
+        console.log();
       } catch (error) {
         console.log(`Term ID ${termId} not found or not attached to this IP asset.`);
       }
@@ -65,11 +67,15 @@ Example:
     process.exit(1);
   }
 
-  return args[0];
+  return {
+    ipId: args[0]
+  };
 }
 
 // Run if called directly
 if (require.main === module) {
-  const ipId = parseArgs();
+  const { ipId } = parseArgs();
   checkLicenseTerms(ipId).catch(console.error);
 }
+
+export { checkLicenseTerms };

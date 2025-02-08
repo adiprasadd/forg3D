@@ -20,91 +20,105 @@ const config: StoryConfig = {
 const client = StoryClient.newClient(config);
 
 // WIP token address on Story Protocol
-const WIP_TOKEN = '0x1514000000000000000000000000000000000000';
+const WIP_TOKEN = '0x1514000000000000000000000000000000000000' as Address;
 
 interface DualLicenseTermsParams {
-  ipId: Address;
-  upfrontFee?: bigint;  // Optional, defaults to 10 WIP
-  revenueFee?: bigint;  // Optional, defaults to 5 WIP
-  revenueShare?: number;  // Optional, defaults to 30%
-  currency?: Address;  // Optional, defaults to WIP_TOKEN
+  ipId: string;
+  currency?: Address;
+  upfrontFee?: bigint;
+  revenueFee?: bigint;
+  revenueShare?: number;
 }
 
 async function registerDualLicenseTerms(params: DualLicenseTermsParams) {
   try {
     console.log('Registering dual license terms...');
     const currency = params.currency || WIP_TOKEN;
-    const upfrontFee = params.upfrontFee || BigInt('10000000000000000000'); // 10 WIP tokens
-    const revenueFee = params.revenueFee || BigInt('5000000000000000000'); // 5 WIP tokens
-    const revenueShare = params.revenueShare || 30; // 30%
+    const upfrontFee = params.upfrontFee; // 10 WIP tokens
+    const revenueFee = params.revenueFee; // 5 WIP tokens
+    const revenueShare = params.revenueShare; // 30%
 
     // Register upfront-only commercial use license
     console.log('\nRegistering upfront-only commercial use license...');
     const upfrontResponse = await client.license.registerCommercialUsePIL({
       currency,
-      defaultMintingFee: upfrontFee,
+      defaultMintingFee: upfrontFee || '10',
       txOptions: { waitForTransaction: true }
     });
 
-    console.log('Upfront-only license terms registered:');
-    console.log('License Terms ID:', upfrontResponse.licenseTermsId);
-    console.log('Transaction Hash:', upfrontResponse.txHash);
+    console.log('Upfront license registered:', upfrontResponse);
 
     // Register revenue-share commercial remix license
     console.log('\nRegistering revenue-share commercial remix license...');
     const revenueShareResponse = await client.license.registerCommercialRemixPIL({
       currency,
-      defaultMintingFee: revenueFee,
-      commercialRevShare: revenueShare,
+      defaultMintingFee: revenueFee || '5',
+      commercialRevShare: revenueShare || 30,
       txOptions: { waitForTransaction: true }
     });
 
-    console.log('Revenue-share license terms registered:');
-    console.log('License Terms ID:', revenueShareResponse.licenseTermsId);
-    console.log('Transaction Hash:', revenueShareResponse.txHash);
+    console.log('Revenue share license registered:', revenueShareResponse);
 
-    // Attach both license terms to the IP asset
-    console.log('\nAttaching license terms to IP asset...');
+    // Attach both licenses to the IP asset
+    console.log('\nAttaching licenses to IP asset...');
     
-    // Attach upfront license
-    console.log('Attaching upfront license...');
-    const attachUpfrontResponse = await client.license.attachLicenseTerms({
-      ipId: params.ipId,
+    if (!upfrontResponse.licenseTermsId || !revenueShareResponse.licenseTermsId) {
+      throw new Error('License terms IDs not returned from registration');
+    }
+
+    await client.license.attachLicenseTerms({
+      ipId: params.ipId as Address,
       licenseTermsId: upfrontResponse.licenseTermsId as bigint,
       txOptions: { waitForTransaction: true }
     });
-    console.log('Upfront license attached:', attachUpfrontResponse.txHash);
 
-    // Attach revenue-share license
-    console.log('Attaching revenue-share license...');
-    const attachRevShareResponse = await client.license.attachLicenseTerms({
-      ipId: params.ipId,
+    await client.license.attachLicenseTerms({
+      ipId: params.ipId as Address,
       licenseTermsId: revenueShareResponse.licenseTermsId as bigint,
       txOptions: { waitForTransaction: true }
     });
-    console.log('Revenue-share license attached:', attachRevShareResponse.txHash);
+
+    console.log('\nLicense terms attached successfully!');
+    console.log('Upfront License Terms ID:', upfrontResponse.licenseTermsId.toString());
+    console.log('Revenue Share License Terms ID:', revenueShareResponse.licenseTermsId.toString());
 
     return {
-      upfrontLicenseId: upfrontResponse.licenseTermsId,
-      revenueLicenseId: revenueShareResponse.licenseTermsId,
-      upfrontAttachTx: attachUpfrontResponse.txHash,
-      revenueAttachTx: attachRevShareResponse.txHash
+      upfrontTermsId: upfrontResponse.licenseTermsId,
+      revenueTermsId: revenueShareResponse.licenseTermsId
     };
   } catch (error) {
-    console.error('Error registering license terms:', error);
+    console.error('Error registering dual license terms:', error);
     throw error;
   }
 }
 
-// Example usage when running directly
-if (require.main === module) {
-  // You would need to provide the IP asset ID when running the script
-  const ipId = process.env.IP_ASSET_ID;
-  if (!ipId) {
-    console.error('Please provide IP_ASSET_ID in environment variables');
+// Parse command line arguments
+function parseArgs() {
+  const args = process.argv.slice(2);
+  const usage = `
+Usage: npx ts-node scripts/registerDualLicenseTerms.ts <ipId>
+
+Arguments:
+  ipId    The ID of the IP asset to attach licenses to
+
+Example:
+  npx ts-node scripts/registerDualLicenseTerms.ts 0x1234...5678
+`;
+
+  if (args.length !== 1 || args.includes('--help')) {
+    console.log(usage);
     process.exit(1);
   }
-  registerDualLicenseTerms({ ipId: ipId as Address }).catch(console.error);
+
+  return {
+    ipId: args[0]
+  };
 }
 
-export { registerDualLicenseTerms, type DualLicenseTermsParams };
+// Run if called directly
+if (require.main === module) {
+  const { ipId } = parseArgs();
+  registerDualLicenseTerms({ ipId }).catch(console.error);
+}
+
+export { registerDualLicenseTerms };
