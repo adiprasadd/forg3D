@@ -1,19 +1,25 @@
 import { StoryClient } from '@story-protocol/core-sdk';
-import { toHex, Address, zeroAddress } from 'viem';
+import { toHex, Address, zeroAddress, createPublicClient, http } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
 import { config } from 'dotenv';
 
 config();
 
 const initStoryClient = () => {
-    if (!process.env.STORY_API_KEY || !process.env.WALLET_PRIVATE_KEY) {
+    if (!process.env.WALLET_PRIVATE_KEY) {
         throw new Error('Missing required environment variables');
     }
 
+    const privateKey = `0x${process.env.WALLET_PRIVATE_KEY.toLowerCase().padStart(64, '0')}` as `0x${string}`;
+    const account = privateKeyToAccount(privateKey);
+
+    const transport = http(process.env.RPC_PROVIDER_URL || 'https://aeneid.storyrpc.io');
+    const publicClient = createPublicClient({ transport });
+
     return StoryClient.newClient({
-        chainId: process.env.NEXT_PUBLIC_STORY_CHAIN_ID || 'aeneid',
-        rpcProvider: process.env.NEXT_PUBLIC_RPC_PROVIDER_URL || 'https://aeneid.storyrpc.io',
-        apiKey: process.env.STORY_API_KEY,
-        privateKey: process.env.WALLET_PRIVATE_KEY,
+        account,
+        transport,
+        chainId: 'aeneid',
     });
 };
 
@@ -49,10 +55,7 @@ async function createAndRegisterIPAsset() {
             txOptions: { waitForTransaction: true }
         });
 
-        console.log(`IP Asset created successfully!`);
-        console.log(`Transaction Hash: ${response.txHash}`);
-        console.log(`NFT Token ID: ${response.tokenId}`);
-        
+        console.log('IP Asset registered:', response);
         return response;
     } catch (error) {
         console.error('Error creating and registering IP asset:', error);
@@ -60,10 +63,10 @@ async function createAndRegisterIPAsset() {
     }
 }
 
-async function registerExistingNFT(nftContract: string, tokenId: string) {
+async function registerExistingNFT(nftContract: Address, tokenId: string) {
     try {
         const client = initStoryClient();
-
+        
         console.log('Registering existing NFT as IP asset...');
         const response = await client.ipAsset.register({
             nftContract,
@@ -77,10 +80,7 @@ async function registerExistingNFT(nftContract: string, tokenId: string) {
             txOptions: { waitForTransaction: true }
         });
 
-        console.log(`IP Asset registered successfully!`);
-        console.log(`Transaction Hash: ${response.txHash}`);
-        console.log(`IP Asset ID: ${response.ipId}`);
-        
+        console.log('IP Asset registered:', response);
         return response;
     } catch (error) {
         console.error('Error registering existing NFT:', error);
@@ -90,21 +90,12 @@ async function registerExistingNFT(nftContract: string, tokenId: string) {
 
 // Example usage
 async function main() {
-    // To create new NFT and register as IP Asset
-    await createAndRegisterIPAsset();
-
-    // To register an existing NFT (uncomment and provide values)
-    /*
-    await registerExistingNFT(
-        "0x041B4F29183317Fd352AE57e331154b73F8a1D73", // NFT contract address
-        "12" // token ID
-    );
-    */
+    try {
+        await createAndRegisterIPAsset();
+    } catch (error) {
+        console.error('Error in main:', error);
+        process.exit(1);
+    }
 }
 
-main()
-    .then(() => process.exit(0))
-    .catch((error) => {
-        console.error(error);
-        process.exit(1);
-    });
+main();
