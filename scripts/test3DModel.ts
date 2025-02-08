@@ -21,7 +21,7 @@ const config: StoryConfig = {
 const client = StoryClient.newClient(config);
 
 // Constants for Story Protocol
-const MERC20_TOKEN = '0xF2104833d386a2734a4eB3B8ad6FC6812F29E38E' as Address;
+const WIP_TOKEN = '0x1514000000000000000000000000000000000000' as Address;
 const LAP_POLICY = '0xBe54FB168b3c982b7AaE60dB6CF75Bd8447b390E' as Address;
 
 async function testModelRegistration() {
@@ -61,7 +61,7 @@ async function testModelRegistration() {
         terms: {
           transferable: true,
           royaltyPolicy: LAP_POLICY,
-          defaultMintingFee: BigInt('10000000000000000'), // 0.01 MERC20 tokens
+          defaultMintingFee: BigInt('10000000000000000'), // 0.01 WIP tokens
           expiration: BigInt(0), // No expiration
           commercialUse: true,
           commercialAttribution: true,
@@ -74,12 +74,12 @@ async function testModelRegistration() {
           derivativesApproval: false,
           derivativesReciprocal: true,
           derivativeRevCeiling: BigInt(0),
-          currency: MERC20_TOKEN, // Use MERC20 token for payments
+          currency: WIP_TOKEN, // Use WIP token for payments
           uri: '',
         },
         licensingConfig: {
           isSet: true,
-          mintingFee: BigInt('10000000000000000'), // 0.01 MERC20 tokens
+          mintingFee: BigInt('10000000000000000'), // 0.01 WIP tokens
           licensingHook: '0x0000000000000000000000000000000000000000' as Address,
           hookData: '0x',
           commercialRevShare: 10, // 10% revenue share
@@ -104,9 +104,9 @@ async function testModelRegistration() {
     console.log("Explorer URL:", `https://explorer.story.foundation/ipa/${response.ipId}`);
     console.log("\nRoyalty Information:");
     console.log("- Your IP Asset has 100M Royalty Tokens");
-    console.log("- Revenue Token: MERC20 (", MERC20_TOKEN, ")");
+    console.log("- Revenue Token: WIP (", WIP_TOKEN, ")");
     console.log("- Commercial Use: Enabled with 10% revenue share");
-    console.log("- Minting Fee: 0.01 MERC20 tokens");
+    console.log("- Minting Fee: 0.01 WIP tokens");
     
   } catch (error) {
     console.error("Error registering 3D model:", error);
