@@ -19,17 +19,37 @@ export function useStoryProtocol() {
 
   const initializeClient = async () => {
     try {
+      console.log("🚀 Starting Story Protocol initialization...");
+      console.log("Current state:", {
+        hasEthereum: !!window.ethereum,
+        isWalletConnected: isConnected,
+        walletAddress: address,
+      });
+
       // Check if MetaMask is available and connected
       if (!window.ethereum || !isConnected) {
+        console.error("❌ Story Protocol initialization failed:", {
+          hasEthereum: !!window.ethereum,
+          isWalletConnected: isConnected,
+        });
         throw new Error("Please connect your wallet first");
       }
 
+      console.log(
+        "🔑 Initializing Story Protocol client with wallet:",
+        address
+      );
+
       // Create provider and signer
       const provider = new ethers.BrowserProvider(window.ethereum);
+      console.log("✓ Provider created");
+
       const signer = await provider.getSigner();
+      console.log("✓ Signer obtained");
 
       // Create transport
       const transport = http(STORY_RPC_URL);
+      console.log("✓ Transport created with URL:", STORY_RPC_URL);
 
       // Initialize Story Protocol client
       const config: StoryConfig = {
@@ -46,18 +66,19 @@ export function useStoryProtocol() {
         },
       };
 
-      console.log("Initializing Story Protocol with config:", {
-        transport: STORY_RPC_URL,
+      console.log("✓ Story Protocol config prepared:", {
         chainId: STORY_CHAIN_ID,
         address,
       });
 
       const storyClient = await StoryClient.newClient(config);
+      console.log("✅ Story Protocol client initialized successfully");
+
       setClient(storyClient);
       setIsInitialized(true);
       setError(null);
     } catch (err) {
-      console.error("Story Protocol initialization error:", err);
+      console.error("❌ Story Protocol initialization error:", err);
       setError(err instanceof Error ? err.message : "Failed to initialize");
     }
   };

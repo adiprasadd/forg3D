@@ -1,5 +1,12 @@
 "use client";
 
+// Add type declaration at the top of the file
+declare global {
+  interface Window {
+    ethereum?: any;
+  }
+}
+
 import { createContext, useContext, useEffect, useState } from "react";
 import { ethers } from "ethers";
 
@@ -21,61 +28,53 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [isConnected, setIsConnected] = useState(false);
   const [address, setAddress] = useState<string | null>(null);
 
-  // Check initial connection
-  useEffect(() => {
-    const checkConnection = async () => {
-      if (typeof window !== "undefined" && window.ethereum) {
-        try {
-          const provider = new ethers.BrowserProvider(window.ethereum);
-          const accounts = await provider.listAccounts();
-          if (accounts[0]) {
-            setIsConnected(true);
-            setAddress(accounts[0].address);
-          }
-        } catch (e) {
-          console.error("Failed to check wallet connection:", e);
-        }
-      }
-    };
-
-    checkConnection();
-
-    // Listen for account changes
-    if (window.ethereum) {
-      window.ethereum.on("accountsChanged", (accounts: string[]) => {
+  const checkConnection = async () => {
+    console.log("🔍 Checking wallet connection...");
+    if (typeof window.ethereum !== "undefined") {
+      console.log("✓ MetaMask is installed");
+      try {
+        const accounts = await window.ethereum.request({
+          method: "eth_accounts",
+        });
+        console.log("Current accounts:", accounts);
         if (accounts.length > 0) {
-          setIsConnected(true);
           setAddress(accounts[0]);
+          setIsConnected(true);
+          console.log("✓ Wallet connected:", accounts[0]);
         } else {
-          setIsConnected(false);
+          console.log("✗ No accounts found - wallet not connected");
           setAddress(null);
+          setIsConnected(false);
         }
-      });
-    }
-
-    return () => {
-      if (window.ethereum) {
-        window.ethereum.removeAllListeners();
+      } catch (error) {
+        console.error("Error checking wallet connection:", error);
+        setAddress(null);
+        setIsConnected(false);
       }
-    };
-  }, []);
+    } else {
+      console.log("✗ MetaMask is not installed");
+      setAddress(null);
+      setIsConnected(false);
+    }
+  };
 
   const connect = async () => {
-    if (typeof window === "undefined" || !window.ethereum) {
-      throw new Error("Please install MetaMask!");
-    }
-
-    try {
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const accounts = await provider.send("eth_requestAccounts", []);
-
-      if (accounts[0]) {
-        setIsConnected(true);
-        setAddress(accounts[0]);
+    console.log("🔌 Attempting to connect wallet...");
+    if (typeof window.ethereum !== "undefined") {
+      try {
+        const accounts = await window.ethereum.request({
+          method: "eth_requestAccounts",
+        });
+        if (accounts.length > 0) {
+          setAddress(accounts[0]);
+          setIsConnected(true);
+          console.log("✓ Successfully connected to wallet:", accounts[0]);
+        }
+      } catch (error) {
+        console.error("Error connecting to wallet:", error);
       }
-    } catch (e) {
-      console.error("Failed to connect wallet:", e);
-      throw e;
+    } else {
+      console.error("MetaMask is not installed");
     }
   };
 
@@ -83,6 +82,34 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     setIsConnected(false);
     setAddress(null);
   };
+
+  // Add useEffect to check connection on mount
+  useEffect(() => {
+    console.log("🔄 WalletProvider mounted - checking initial connection");
+    checkConnection();
+
+    // Listen for account changes
+    if (typeof window.ethereum !== "undefined") {
+      window.ethereum.on("accountsChanged", (accounts: string[]) => {
+        console.log("🔄 Accounts changed:", accounts);
+        if (accounts.length > 0) {
+          setAddress(accounts[0]);
+          setIsConnected(true);
+        } else {
+          setAddress(null);
+          setIsConnected(false);
+        }
+      });
+    }
+
+    return () => {
+      if (typeof window.ethereum !== "undefined") {
+        window.ethereum.removeListener("accountsChanged", () => {
+          console.log("🔌 Removed account change listener");
+        });
+      }
+    };
+  }, []);
 
   return (
     <WalletContext.Provider
