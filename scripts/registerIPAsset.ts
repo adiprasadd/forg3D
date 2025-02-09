@@ -23,15 +23,15 @@ const initStoryClient = () => {
     });
 };
 
-async function createAndRegisterIPAsset() {
+async function createAndRegisterIPAsset(name: string, description: string, metadataUri: string): Promise<`0x${string}`> {
     try {
         const client = initStoryClient();
 
         // First, create a new NFT collection
         console.log('Creating new NFT collection...');
         const newCollection = await client.nftClient.createNFTCollection({
-            name: '3D Model Collection',
-            symbol: '3DMDL',
+            name: name + ' Collection',
+            symbol: name.substring(0, 5).toUpperCase(),
             isPublicMinting: true,
             mintOpen: true,
             mintFeeRecipient: zeroAddress,
@@ -47,55 +47,63 @@ async function createAndRegisterIPAsset() {
             spgNftContract: newCollection.spgNftContract as Address,
             allowDuplicates: true,
             ipMetadata: {
-                ipMetadataURI: 'https://your-metadata-uri.com/model1',
-                ipMetadataHash: toHex('model-metadata-hash', { size: 32 }),
-                nftMetadataHash: toHex('model-nft-metadata-hash', { size: 32 }),
-                nftMetadataURI: 'https://your-metadata-uri.com/model1/nft',
+                ipMetadataURI: metadataUri,
+                ipMetadataHash: toHex(description, { size: 32 }),
             },
-            txOptions: { waitForTransaction: true }
+            txOptions: { waitForTransaction: true },
         });
 
         console.log('IP Asset registered:', response);
-        return response;
+        if (!response.ipId) {
+            throw new Error('No IP ID returned from registration');
+        }
+        return response.ipId;
     } catch (error) {
-        console.error('Error creating and registering IP asset:', error);
+        console.error('Error:', error);
         throw error;
     }
 }
 
-async function registerExistingNFT(nftContract: Address, tokenId: string) {
-    try {
-        const client = initStoryClient();
-        
-        console.log('Registering existing NFT as IP asset...');
-        const response = await client.ipAsset.register({
-            nftContract,
-            tokenId,
-            ipMetadata: {
-                ipMetadataURI: 'https://your-metadata-uri.com/model1',
-                ipMetadataHash: toHex('model-metadata-hash', { size: 32 }),
-                nftMetadataHash: toHex('model-nft-metadata-hash', { size: 32 }),
-                nftMetadataURI: 'https://your-metadata-uri.com/model1/nft',
-            },
-            txOptions: { waitForTransaction: true }
-        });
+// Parse command line arguments
+function parseArgs() {
+    const args = process.argv.slice(2);
+    const usage = `
+Usage: npx ts-node scripts/registerIPAsset.ts <name> <description> <metadataUri>
 
-        console.log('IP Asset registered:', response);
-        return response;
-    } catch (error) {
-        console.error('Error registering existing NFT:', error);
-        throw error;
-    }
-}
+Arguments:
+  name          Name of the IP asset
+  description   Description of the IP asset
+  metadataUri   URI of the IP asset metadata
 
-// Example usage
-async function main() {
-    try {
-        await createAndRegisterIPAsset();
-    } catch (error) {
-        console.error('Error in main:', error);
+Example:
+  npx ts-node scripts/registerIPAsset.ts "My IP Asset" "A description" "https://example.com/metadata.json"
+`;
+
+    if (args.length !== 3 || args.includes('--help')) {
+        console.log(usage);
         process.exit(1);
     }
+
+    return {
+        name: args[0],
+        description: args[1],
+        metadataUri: args[2]
+    };
 }
 
-main();
+// Run if called directly
+if (require.main === module) {
+    const { name, description, metadataUri } = parseArgs();
+    createAndRegisterIPAsset(name, description, metadataUri)
+        .then(ipId => {
+            // Just output the IP ID by itself so it can be captured by scripts
+            console.log(ipId);
+            process.exit(0);
+        })
+        .catch(error => {
+            console.error(error);
+            process.exit(1);
+        });
+}
+
+export { createAndRegisterIPAsset };
