@@ -5,27 +5,27 @@ import { createAndRegisterIPAsset } from "@/app/lib/story-protocol/ip-asset";
 import fs from "fs";
 import path from "path";
 
+interface ModelData {
+  ipId: string;
+  tokenId: string;
+  name: string;
+  description: string;
+  mediaUrl: string;
+  thumbnailUrl?: string;
+  price?: string;
+  royaltyPercentage?: number;
+  creator: string;
+  spgNftContract: string;
+}
+
+// In-memory storage for demo purposes
+// In a real app, you would use a database
+let models: ModelData[] = [];
+
 export async function GET() {
   try {
-    const uploadsDir = path.join(process.cwd(), "public", "uploads");
-    const models = [];
-
-    // Read all model directories
-    const dirs = fs.readdirSync(uploadsDir);
-    for (const dir of dirs) {
-      const metadataPath = path.join(uploadsDir, dir, "metadata.json");
-      if (fs.existsSync(metadataPath)) {
-        const metadata = JSON.parse(fs.readFileSync(metadataPath, "utf-8"));
-        models.push({
-          id: dir,
-          ...metadata,
-          thumbnailUrl: `/uploads/${dir}/cover.png`,
-          modelUrl: `/uploads/${dir}/model.gltf`,
-        });
-      }
-    }
-
-    return NextResponse.json({ models });
+    // Return all models
+    return NextResponse.json(models);
   } catch (error) {
     console.error("Error fetching models:", error);
     return NextResponse.json(
@@ -37,74 +37,35 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const data = await request.json();
-    console.log("\n📝 Received model data:", data);
-
-    if (!data.modelUrl) {
-      console.error("Missing modelUrl in request data");
-      return NextResponse.json({ error: "Missing modelUrl" }, { status: 400 });
-    }
-
-    // Create uploads directory if it doesn't exist
-    const modelDir = path.join(
-      process.cwd(),
-      "public",
-      "uploads",
-      data.modelUrl
-    );
-    console.log("Model directory:", modelDir);
-
-    if (!fs.existsSync(modelDir)) {
-      console.error("Model directory not found:", modelDir);
+    const client = storyProtocol.getClient();
+    if (!client) {
       return NextResponse.json(
-        { error: "Model directory not found" },
-        { status: 404 }
+        { error: "Story Protocol client not initialized" },
+        { status: 500 }
       );
     }
 
-    const metadataPath = path.join(modelDir, "metadata.json");
-    let existingMetadata = {};
+    const data: ModelData = await request.json();
 
-    // Read existing metadata if it exists
-    if (fs.existsSync(metadataPath)) {
-      try {
-        const rawMetadata = fs.readFileSync(metadataPath, "utf-8");
-        existingMetadata = JSON.parse(rawMetadata);
-        console.log("📖 Existing metadata:", existingMetadata);
-      } catch (error) {
-        console.warn("⚠️ Error reading existing metadata:", error);
-      }
+    // Validate required fields
+    if (!data.ipId || !data.name || !data.mediaUrl || !data.creator) {
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 }
+      );
     }
 
-    // Merge existing metadata with new data
-    const metadata = {
-      ...existingMetadata,
-      name: data.name,
-      description: data.description,
-      price: data.price,
-      royaltyPercentage: data.royaltyPercentage,
-      ipId: data.ipId, // Story Protocol IP Asset ID
-      txHash: data.txHash,
-      spgNftContract: data.spgNftContract,
-      tokenId: data.tokenId,
-      licenseTokenId: data.licenseTokenId,
-      licenseTermsIds: data.licenseTermsIds,
-      lastModified: new Date().toISOString(),
-    };
-
-    console.log("\n💾 Saving updated metadata:", metadata);
-    fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2));
-    console.log("✅ Metadata saved successfully at:", metadataPath);
+    // Add model to storage
+    models.push(data);
 
     return NextResponse.json({
-      success: true,
-      metadata,
-      path: metadataPath,
+      message: "Model registered successfully",
+      model: data,
     });
   } catch (error) {
-    console.error("Error saving model:", error);
+    console.error("Error registering model:", error);
     return NextResponse.json(
-      { error: "Failed to save model" },
+      { error: "Failed to register model" },
       { status: 500 }
     );
   }

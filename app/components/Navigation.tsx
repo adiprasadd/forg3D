@@ -1,44 +1,53 @@
 "use client";
 
 import Link from "next/link";
-import { useStoryProtocol } from "../hooks/useStoryProtocol";
-import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
+import { usePathname } from "next/navigation";
+import ConnectWallet from "./ConnectWallet";
 
 export default function Navigation() {
-  const { error } = useStoryProtocol();
+  const pathname = usePathname();
+
+  const isActive = (path: string) => {
+    return pathname === path
+      ? "text-blue-500 border-b-2 border-blue-500"
+      : "text-gray-300 hover:text-blue-400";
+  };
 
   return (
-    <nav className="py-4 px-6 border-b border-gray-700 overflow-x-auto">
-      <div className="flex items-center justify-between">
-        <Link
-          href="/"
-          className="text-2xl font-bold text-blue-400"
-          aria-label="Home"
-        >
-          StoryForge
-        </Link>
-        <div className="flex items-center space-x-6">
-          <Link href="/marketplace" className="hover:text-blue-400 transition">
-            Marketplace
-          </Link>
-          <Link href="/Creators" className="hover:text-blue-400 transition">
-            Creators
-          </Link>
-          <SignedOut>
-            <SignInButton mode="modal">
-              <button className="hover:text-blue-400 transition">
-                Sign In
-              </button>
-            </SignInButton>
-          </SignedOut>
-          <SignedIn>
-            <UserButton/>
-          </SignedIn>
+    <nav className="bg-gray-800 shadow-lg">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          <div className="flex items-center">
+            <Link
+              href="/"
+              className="text-xl font-bold text-white hover:text-blue-400"
+            >
+              StoryForge
+            </Link>
+            <div className="ml-10 flex space-x-8">
+              <Link
+                href="/models"
+                className={`inline-flex items-center px-1 pt-1 text-sm font-medium ${isActive(
+                  "/models"
+                )}`}
+              >
+                Models
+              </Link>
+              <Link
+                href="/my-models"
+                className={`inline-flex items-center px-1 pt-1 text-sm font-medium ${isActive(
+                  "/my-models"
+                )}`}
+              >
+                My Models
+              </Link>
+            </div>
+          </div>
+          <div className="flex items-center">
+            <ConnectWallet />
+          </div>
         </div>
       </div>
-      {error && (
-        <div className="mt-2 text-red-400 text-sm text-center">{error}</div>
-      )}
     </nav>
   );
 }
